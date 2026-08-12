@@ -1,9 +1,9 @@
 ---
 layout: default
-title: Home
+title: Tech Blog
 ---
 
-# Jaewon's Tech Blog
+# Ewillwin's Tech Blog
 
 ## Posts
 
