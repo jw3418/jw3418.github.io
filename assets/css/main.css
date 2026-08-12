@@ -115,9 +115,9 @@ body {
 .home-intro {
   margin-bottom: 2.5rem;
   padding: 2rem 2.5rem;
-  background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%);
+  background: #38BDF8;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
 }
 
 .home-intro h1 {
@@ -165,13 +165,13 @@ body {
 }
 
 .cat-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: #38BDF8;
+  color: #38BDF8;
 }
 
 .cat-btn.active {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: #38BDF8;
+  border-color: #38BDF8;
   color: #fff;
 }
 
