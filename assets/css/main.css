@@ -115,9 +115,9 @@ body {
 .home-intro {
   margin-bottom: 2.5rem;
   padding: 2rem 2.5rem;
-  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
 
 .home-intro h1 {
@@ -129,7 +129,7 @@ body {
 }
 
 .home-intro p {
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.95);
   font-size: 0.9375rem;
 }
 
