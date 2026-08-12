@@ -53,7 +53,7 @@ body {
   top: 0;
   left: 0;
   height: 3px;
-  background: #3B82F6;
+  background: #437299;
   width: 0;
   z-index: 1000;
   transition: width 80ms linear;
@@ -115,9 +115,9 @@ body {
 .home-intro {
   margin-bottom: 2.5rem;
   padding: 2rem 2.5rem;
-  background: #38BDF8;
+  background: #437299;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+  box-shadow: 0 4px 12px rgba(67, 114, 153, 0.3);
 }
 
 .home-intro h1 {
@@ -165,13 +165,13 @@ body {
 }
 
 .cat-btn:hover {
-  border-color: #38BDF8;
-  color: #38BDF8;
+  border-color: #437299;
+  color: #437299;
 }
 
 .cat-btn.active {
-  background: #38BDF8;
-  border-color: #38BDF8;
+  background: #437299;
+  border-color: #437299;
   color: #fff;
 }
 
