@@ -2,7 +2,7 @@
 layout: post
 title: "UPDATE 동시성 문제와 낙관적 락, 비관적 락"
 date: 2026-08-12
-categories: [locking]
+categories: [Database & Concurrency]
 ---
 
 # UPDATE 동시성 문제와 낙관적 락, 비관적 락
