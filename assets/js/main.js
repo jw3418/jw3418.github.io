@@ -106,9 +106,22 @@
     flowchart: {
       htmlLabels: true,
       useMaxWidth: true,
-      curve: 'linear'
+      curve: 'linear',
+      padding: 10,
+      nodeSpacing: 40,
+      rankSpacing: 40
     },
     sequence: {
+      useMaxWidth: true,
+      diagramMarginX: 10,
+      diagramMarginY: 10,
+      boxMargin: 8,
+      messageMargin: 30
+    },
+    gantt: {
+      useMaxWidth: true
+    },
+    journey: {
       useMaxWidth: true
     }
   });
@@ -122,14 +135,38 @@
     });
   });
 
+  // 모바일 반응형 처리
   document.querySelectorAll('.post-content .mermaid').forEach(function (el) {
     var svg = el.querySelector('svg');
     if (!svg) return;
 
-    var overflow = el.scrollWidth - el.clientWidth;
-    if (overflow > 0) {
-      el.scrollLeft = Math.floor(overflow / 2);
+    // 모바일에서 SVG 크기 조정
+    function adjustMermaidSize() {
+      var isMobile = window.innerWidth <= 760;
+      
+      if (isMobile) {
+        // 모바일: 컨테이너 너비에 맞춤
+        svg.style.maxWidth = '100%';
+        svg.style.height = 'auto';
+        svg.removeAttribute('width');
+        
+        // 원본 viewBox 유지하면서 비율 조정
+        if (!svg.hasAttribute('viewBox') && svg.hasAttribute('width') && svg.hasAttribute('height')) {
+          var width = svg.getAttribute('width');
+          var height = svg.getAttribute('height');
+          svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+        }
+      }
+      
+      // 가로 스크롤이 필요한 경우 중앙 정렬
+      var overflow = el.scrollWidth - el.clientWidth;
+      if (overflow > 0) {
+        el.scrollLeft = Math.floor(overflow / 2);
+      }
     }
+    
+    adjustMermaidSize();
+    window.addEventListener('resize', adjustMermaidSize);
   });
 })();
 
