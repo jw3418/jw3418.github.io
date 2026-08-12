@@ -34,8 +34,8 @@ A / 20260812 / 3
 
 ```mermaid
 flowchart LR
-    A1[Request A\nMAX(seq)+1 = 4\nINSERT seq=4] --> A2[Success]
-    B1[Request B\nMAX(seq)+1 = 4\nINSERT seq=4] --> B2[PK conflict]
+    A1["Request A<br/>MAX(seq)+1 = 4<br/>INSERT seq=4"] --> A2[Success]
+    B1["Request B<br/>MAX(seq)+1 = 4<br/>INSERT seq=4"] --> B2[PK conflict]
 ```
 
 `SELECT MAX(seq) + 1`과 `INSERT`가 하나의 원자적인 연산이 아니기 때문에 두 요청이 같은 seq를 가져갈 수 있다.

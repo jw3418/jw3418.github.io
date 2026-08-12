@@ -102,6 +102,12 @@
     startOnLoad: false,
     theme: 'base',
     securityLevel: 'loose',
+    flowchart: {
+      htmlLabels: true,
+      useMaxWidth: false,
+      nodeSpacing: 42,
+      rankSpacing: 48
+    },
     themeVariables: {
       primaryColor: '#DDEBFF',
       primaryTextColor: '#0F1B2D',

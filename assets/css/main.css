@@ -403,11 +403,24 @@ body {
 /* Mermaid diagrams */
 .post-content .mermaid {
   margin: 1.375rem 0;
-  padding: 0.875rem;
+  padding: 1rem 1.125rem;
   background: #FFFFFF;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow-x: auto;
+}
+
+.post-content .mermaid svg {
+  display: block;
+  width: 100% !important;
+  min-width: 640px;
+  height: auto !important;
+}
+
+@media (max-width: 760px) {
+  .post-content .mermaid svg {
+    min-width: 520px;
+  }
 }
 
 /* Copy Button */
