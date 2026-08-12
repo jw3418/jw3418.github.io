@@ -104,13 +104,13 @@
     securityLevel: 'loose',
     flowchart: {
       htmlLabels: true,
-      useMaxWidth: false,
+      useMaxWidth: true,
       nodeSpacing: 42,
       rankSpacing: 48,
       curve: 'basis'
     },
     sequence: {
-      useMaxWidth: false,
+      useMaxWidth: true,
       actorMargin: 55,
       boxMargin: 14,
       messageMargin: 34,

@@ -402,9 +402,9 @@ body {
 
 /* Mermaid diagrams */
 .post-content .mermaid {
-  width: calc(100% + 1.5rem);
-  margin: 1.375rem -0.75rem;
-  padding: 1rem 1.125rem;
+  width: 100%;
+  margin: 1.375rem 0;
+  padding: 0.875rem 1rem;
   background: #FFFFFF;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -414,7 +414,7 @@ body {
 .post-content .mermaid svg {
   display: block;
   width: 100% !important;
-  min-width: 640px;
+  max-width: 100%;
   height: auto !important;
 }
 
@@ -451,11 +451,7 @@ body {
   .post-content .mermaid {
     width: 100%;
     margin: 1.375rem 0;
-    padding: 0.875rem;
-  }
-
-  .post-content .mermaid svg {
-    min-width: 520px;
+    padding: 0.75rem 0.875rem;
   }
 }
 
