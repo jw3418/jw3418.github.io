@@ -9,10 +9,10 @@ title: Tech Blog
 </div>
 
 <div class="category-bar">
-  <button class="cat-btn active" data-cat="all">전체</button>
+  <button class="cat-btn active" data-cat="all">all</button>
   {% assign cats = site.posts | map: "categories" | flatten | uniq | sort %}
   {% for cat in cats %}
-  <button class="cat-btn" data-cat="{{ cat }}">{{ site.data.categories[cat] | default: cat }}</button>
+  <button class="cat-btn" data-cat="{{ cat }}">{{ cat }}</button>
   {% endfor %}
 </div>
 
@@ -26,4 +26,4 @@ title: Tech Blog
   </li>
   {% endfor %}
 </ul>
-<p class="post-list-empty" id="post-list-empty" style="display:none">해당 카테고리의 포스트가 없습니다.</p>
+<p class="post-list-empty" id="post-list-empty" style="display:none">No posts in this category.</p>

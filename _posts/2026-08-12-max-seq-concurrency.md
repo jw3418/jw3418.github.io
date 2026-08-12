@@ -2,7 +2,7 @@
 layout: post
 title: "MAX(seq) + 1은 동시 요청에 안전할까?"
 date: 2026-08-12
-categories: [backend]
+categories: [concurrency]
 ---
 
 # MAX(seq) + 1은 동시 요청에 안전할까?
