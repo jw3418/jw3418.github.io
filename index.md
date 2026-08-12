@@ -10,7 +10,10 @@ title: Tech Blog
 
 <div class="category-bar">
   <button class="cat-btn active" data-cat="all">전체</button>
-  <button class="cat-btn" data-cat="backend">백엔드 엔지니어링</button>
+  {% assign cats = site.posts | map: "categories" | flatten | uniq | sort %}
+  {% for cat in cats %}
+  <button class="cat-btn" data-cat="{{ cat }}">{{ site.data.categories[cat] | default: cat }}</button>
+  {% endfor %}
 </div>
 
 <p class="post-list-label">Posts</p>
