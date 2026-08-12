@@ -12,7 +12,7 @@ title: Tech Blog
   <button class="cat-btn active" data-cat="all">all</button>
   {% assign cats = site.posts | map: "categories" | flatten | uniq | sort %}
   {% for cat in cats %}
-  <button class="cat-btn" data-cat="{{ cat }}">{{ cat }}</button>
+  <button class="cat-btn" data-cat="{{ cat | slugify }}">{{ cat }}</button>
   {% endfor %}
 </div>
 
@@ -20,7 +20,7 @@ title: Tech Blog
 
 <ul class="post-list" id="post-list">
   {% for post in site.posts %}
-  <li data-categories="{{ post.categories | join: ' ' }}">
+  <li data-categories="{% for c in post.categories %}{{ c | slugify }}{% unless forloop.last %} {% endunless %}{% endfor %}">
     <span class="post-date">{{ post.date | date: "%Y.%m.%d" }}</span>
     <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
   </li>
