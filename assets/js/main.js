@@ -121,6 +121,16 @@
       }
     });
   });
+
+  document.querySelectorAll('.post-content .mermaid').forEach(function (el) {
+    var svg = el.querySelector('svg');
+    if (!svg) return;
+
+    var overflow = el.scrollWidth - el.clientWidth;
+    if (overflow > 0) {
+      el.scrollLeft = Math.floor(overflow / 2);
+    }
+  });
 })();
 
 /* Estimated reading time */

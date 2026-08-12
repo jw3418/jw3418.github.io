@@ -402,9 +402,8 @@ body {
 
 /* Mermaid diagrams */
 .post-content .mermaid {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: block;
+  text-align: center;
   width: 100%;
   margin: 1.375rem 0;
   padding: 0.625rem 0.75rem;
@@ -415,9 +414,8 @@ body {
 }
 
 .post-content .mermaid svg {
-  display: block;
-  margin: 0 auto;
-  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: top;
   max-width: none;
 }
 
