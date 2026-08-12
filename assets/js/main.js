@@ -89,3 +89,35 @@
   var minutes = Math.max(1, Math.round(words / 200));
   el.textContent = minutes;
 })();
+
+/* Category filter */
+(function () {
+  var buttons = document.querySelectorAll('.cat-btn');
+  var items   = document.querySelectorAll('#post-list li');
+  var empty   = document.getElementById('post-list-empty');
+  if (!buttons.length || !items.length) return;
+
+  function applyFilter(cat) {
+    var visible = 0;
+    items.forEach(function (li) {
+      if (cat === 'all') {
+        li.style.display = '';
+        visible++;
+      } else {
+        var cats = (li.dataset.categories || '').split(/\s+/).filter(Boolean);
+        var show = cats.indexOf(cat) !== -1;
+        li.style.display = show ? '' : 'none';
+        if (show) visible++;
+      }
+    });
+    if (empty) empty.style.display = visible === 0 ? '' : 'none';
+  }
+
+  buttons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      buttons.forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      applyFilter(btn.dataset.cat);
+    });
+  });
+})();
