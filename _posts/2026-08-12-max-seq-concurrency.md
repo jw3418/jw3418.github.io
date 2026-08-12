@@ -34,8 +34,8 @@ A / 20260812 / 3
 
 ```mermaid
 flowchart LR
-    A1["Request A<br/>MAX(seq)+1 = 4<br/>INSERT seq=4"] --> A2[Success]
-    B1["Request B<br/>MAX(seq)+1 = 4<br/>INSERT seq=4"] --> B2[PK conflict]
+    A1["Request A<br/>MAX(seq)+1 = 4<br/>INSERT seq=4"] --> A2["Success"]
+    B1["Request B<br/>MAX(seq)+1 = 4<br/>INSERT seq=4"] --> B2["PK conflict"]
 ```
 
 `SELECT MAX(seq) + 1`과 `INSERT`가 하나의 원자적인 연산이 아니기 때문에 두 요청이 같은 seq를 가져갈 수 있다.
@@ -92,9 +92,9 @@ INSERT seq=5 → 성공
 
 ```mermaid
 flowchart TD
-  S1[Same seq computed] --> S2[INSERT]
-  S2 --> S3[PK constraint detects conflict]
-  S3 --> S4[Retry failed request]
+    S1["Same seq computed"] --> S2["INSERT"]
+    S2 --> S3["PK constraint detects conflict"]
+    S3 --> S4["Retry failed request"]
 ```
 
 방식으로 충돌 이후에 복구한다.
@@ -140,10 +140,10 @@ A / 20260813 → 1, 2, 3 ...
 
 ```mermaid
 flowchart LR
-    C1[MAX(seq) + 1] --> C2[PK constraint]
-    C2 --> C3[DuplicateKeyException]
-    C3 --> C4[Re-read seq]
-    C4 --> C5[Retry]
+    C1["MAX(seq) + 1"] --> C2["PK constraint"]
+    C2 --> C3["DuplicateKeyException"]
+    C3 --> C4["Re-read seq"]
+    C4 --> C5["Retry"]
 ```
 
 구조라고 볼 수 있다.

@@ -106,7 +106,15 @@
       htmlLabels: true,
       useMaxWidth: false,
       nodeSpacing: 42,
-      rankSpacing: 48
+      rankSpacing: 48,
+      curve: 'basis'
+    },
+    sequence: {
+      useMaxWidth: false,
+      actorMargin: 55,
+      boxMargin: 14,
+      messageMargin: 34,
+      noteMargin: 10
     },
     themeVariables: {
       primaryColor: '#DDEBFF',
@@ -116,6 +124,8 @@
       secondaryColor: '#EEF5FF',
       tertiaryColor: '#F8FBFF',
       background: '#FFFFFF',
+      fontSize: '15px',
+      borderRadius: '8px',
       fontFamily: 'Inter, sans-serif'
     }
   });
