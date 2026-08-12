@@ -102,6 +102,7 @@
     startOnLoad: false,
     theme: 'default',
     securityLevel: 'loose',
+    suppressErrorRendering: true,
     flowchart: {
       htmlLabels: true,
       useMaxWidth: true,
@@ -112,7 +113,14 @@
     }
   });
 
-  mermaid.run({ querySelector: '.mermaid' });
+  mermaid.run({ querySelector: '.mermaid' }).catch(function (err) {
+    console.error('Mermaid render failed:', err);
+    document.querySelectorAll('.post-content .mermaid').forEach(function (el) {
+      if (!el.querySelector('svg')) {
+        el.classList.add('mermaid-error');
+      }
+    });
+  });
 })();
 
 /* Estimated reading time */

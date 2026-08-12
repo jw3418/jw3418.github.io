@@ -11,7 +11,7 @@ Spring 백엔드에서 흔히 사용하는 구조는 아래와 같다.
 
 ```mermaid
 flowchart TD
-  Controller --> Service --> Mapper --> Database
+  C1["Controller"] --> S1["Service"] --> M1["Mapper"] --> D1["Database"]
 ```
 
 핵심은 각 계층의 책임을 분리하는 것이다.
@@ -102,7 +102,7 @@ public interface ItemMapper {
 
 ```mermaid
 flowchart TD
-  Service --> MapperInterface[Mapper Interface] --> MyBatis --> JDBC --> DB
+  S2["Service"] --> M2["Mapper Interface"] --> MB2["MyBatis"] --> J2["JDBC"] --> DB2["DB"]
 ```
 
 Mapper는 기존 DAO와 비슷한 **Persistence Layer** 역할이다.
@@ -141,14 +141,14 @@ public class ItemVo {
 
 ```mermaid
 flowchart TD
-  HttpReq[HTTP Request] --> ReqDto --> Controller --> Service --> VO --> Mapper --> DB
+  H3["HTTP Request"] --> R3["ReqDto"] --> C3["Controller"] --> S3["Service"] --> V3["VO"] --> M3["Mapper"] --> D3["DB"]
 ```
 
 조회 시에는 반대 방향으로 올라온다.
 
 ```mermaid
 flowchart TD
-  DB --> Mapper --> VO --> Service --> ResDto --> Controller
+  D4["DB"] --> M4["Mapper"] --> V4["VO"] --> S4["Service"] --> R4["ResDto"] --> C4["Controller"]
 ```
 
 ---
@@ -159,12 +159,12 @@ MyBatis에서는 Mapper가 있었다면 JPA에서는 주로 Repository를 사용
 
 ```mermaid
 flowchart TD
-  S1[Service] --> M1[Mapper] --> Sql1[SQL] --> DB1[DB]
+  S5["Service"] --> M5["Mapper"] --> Q5["SQL"] --> D5["DB"]
 ```
 
 ```mermaid
 flowchart TD
-  S2[Service] --> R2[Repository] --> H2[JPA / Hibernate] --> Sql2[SQL] --> DB2[DB]
+  S6["Service"] --> R6["Repository"] --> H6["JPA / Hibernate"] --> Q6["SQL"] --> D6["DB"]
 ```
 
 MyBatis는 개발자가 SQL을 직접 작성한다.

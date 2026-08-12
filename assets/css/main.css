@@ -402,6 +402,9 @@ body {
 
 /* Mermaid diagrams */
 .post-content .mermaid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   width: 100%;
   margin: 1.375rem 0;
   padding: 0.625rem 0.75rem;
@@ -413,7 +416,19 @@ body {
 
 .post-content .mermaid svg {
   display: block;
+  margin: 0 auto;
+  flex-shrink: 0;
   max-width: none;
+}
+
+.post-content .mermaid.mermaid-error {
+  display: block;
+  color: #64748B;
+  font-size: 0.875rem;
+}
+
+.post-content .mermaid.mermaid-error::before {
+  content: 'Diagram failed to render. Please check Mermaid syntax.';
 }
 
 @media (max-width: 760px) {
