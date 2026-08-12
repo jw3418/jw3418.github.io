@@ -5,4 +5,8 @@ title: Home
 
 # Jaewon's Tech Blog
 
-Backend / Database / Distributed Systems
+## Posts
+
+{% for post in site.posts %}
+- [{{ post.title }}]({{ post.url | relative_url }})
+{% endfor %}
