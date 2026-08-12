@@ -404,7 +404,7 @@ body {
 .post-content .mermaid {
   width: 100%;
   margin: 1.375rem 0;
-  padding: 0.875rem 1rem;
+  padding: 0.625rem 0.75rem;
   background: #FFFFFF;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -413,38 +413,7 @@ body {
 
 .post-content .mermaid svg {
   display: block;
-  width: 100% !important;
-  max-width: 100%;
-  height: auto !important;
-}
-
-.post-content .mermaid svg text {
-  font-family: var(--font-ui) !important;
-  font-size: 15px !important;
-}
-
-.post-content .mermaid svg .node rect,
-.post-content .mermaid svg .node polygon,
-.post-content .mermaid svg .cluster rect,
-.post-content .mermaid svg .actor line,
-.post-content .mermaid svg .actor rect,
-.post-content .mermaid svg .actor polygon {
-  rx: 10;
-  ry: 10;
-  stroke-width: 1.5px;
-}
-
-.post-content .mermaid svg .edgePath path,
-.post-content .mermaid svg .messageLine0,
-.post-content .mermaid svg .messageLine1,
-.post-content .mermaid svg .actor-line {
-  stroke-width: 1.5px;
-}
-
-.post-content .mermaid svg .label text,
-.post-content .mermaid svg .noteText,
-.post-content .mermaid svg .actor {
-  font-family: var(--font-ui) !important;
+  max-width: none;
 }
 
 @media (max-width: 760px) {
