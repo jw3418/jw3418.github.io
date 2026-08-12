@@ -41,6 +41,7 @@
 
     btn.addEventListener('click', function () {
       var code = block.querySelector('code');
+      if (code && code.classList.contains('language-mermaid')) return;
       var text = (code ? code.textContent : block.textContent) || '';
 
       var done = function (ok) {
@@ -71,9 +72,49 @@
       }
     });
 
+    var codeEl = block.querySelector('code');
+    if (codeEl && codeEl.classList.contains('language-mermaid')) return;
+
     /* position:relative is set in CSS already */
     block.appendChild(btn);
   });
+})();
+
+/* Mermaid diagrams */
+(function () {
+  if (typeof mermaid === 'undefined') return;
+
+  var mermaidCodes = document.querySelectorAll('.post-content code.language-mermaid');
+  if (!mermaidCodes.length) return;
+
+  mermaidCodes.forEach(function (code) {
+    var pre = code.closest('pre');
+    if (!pre) return;
+
+    var wrapper = document.createElement('div');
+    wrapper.className = 'mermaid';
+    wrapper.textContent = code.textContent;
+
+    pre.replaceWith(wrapper);
+  });
+
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    securityLevel: 'loose',
+    themeVariables: {
+      primaryColor: '#DDEBFF',
+      primaryTextColor: '#0F1B2D',
+      primaryBorderColor: '#3A5D84',
+      lineColor: '#3A5D84',
+      secondaryColor: '#EEF5FF',
+      tertiaryColor: '#F8FBFF',
+      background: '#FFFFFF',
+      fontFamily: 'Inter, sans-serif'
+    }
+  });
+
+  mermaid.run({ querySelector: '.mermaid' });
 })();
 
 /* Estimated reading time */
