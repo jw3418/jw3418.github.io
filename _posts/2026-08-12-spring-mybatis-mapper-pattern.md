@@ -2,7 +2,7 @@
 layout: post
 title: "Spring에서 MyBatis Mapper 패턴 이해하기"
 date: 2026-08-12
-categories: [Spring & Architecture]
+categories: [Spring & Java]
 ---
 
 # Spring에서 MyBatis Mapper 패턴 이해하기
