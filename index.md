@@ -9,7 +9,7 @@ title: Tech Blog
 </div>
 
 <div class="category-bar">
-  <button class="cat-btn active" data-cat="all">all</button>
+  <button class="cat-btn active" data-cat="all">All</button>
   {% assign cats = site.posts | map: "categories" | flatten | uniq | sort %}
   {% for cat in cats %}
   <button class="cat-btn" data-cat="{{ cat | slugify }}">{{ cat }}</button>

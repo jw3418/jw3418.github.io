@@ -32,14 +32,10 @@ A / 20260812 / 3
 
 현재 `MAX(seq) = 3`인 상황에서 A와 B가 동시에 조회했다고 해보자.
 
-```text
-Request A                    Request B
-
-MAX(seq) + 1 → 4            MAX(seq) + 1 → 4
-
-INSERT seq=4                INSERT seq=4
-     ↓                           ↓
-   성공                       PK 충돌
+```mermaid
+flowchart LR
+    A1[Request A\nMAX(seq)+1 = 4\nINSERT seq=4] --> A2[Success]
+    B1[Request B\nMAX(seq)+1 = 4\nINSERT seq=4] --> B2[PK conflict]
 ```
 
 `SELECT MAX(seq) + 1`과 `INSERT`가 하나의 원자적인 연산이 아니기 때문에 두 요청이 같은 seq를 가져갈 수 있다.
@@ -94,14 +90,11 @@ INSERT seq=5 → 성공
 
 대신
 
-```text
-동일 seq 계산
-    ↓
-INSERT
-    ↓
-PK Constraint로 충돌 감지
-    ↓
-실패한 요청 Retry
+```mermaid
+flowchart TD
+  S1[Same seq computed] --> S2[INSERT]
+  S2 --> S3[PK constraint detects conflict]
+  S3 --> S4[Retry failed request]
 ```
 
 방식으로 충돌 이후에 복구한다.
@@ -145,12 +138,12 @@ A / 20260813 → 1, 2, 3 ...
 
 결국
 
-```text
-MAX(seq) + 1
-→ PK Constraint
-→ DuplicateKeyException
-→ seq 재조회
-→ Retry
+```mermaid
+flowchart LR
+    C1[MAX(seq) + 1] --> C2[PK constraint]
+    C2 --> C3[DuplicateKeyException]
+    C3 --> C4[Re-read seq]
+    C4 --> C5[Retry]
 ```
 
 구조라고 볼 수 있다.

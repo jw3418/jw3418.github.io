@@ -13,22 +13,17 @@ Oracle에서는 UPDATE가 수행되면 해당 row에 lock이 걸린다.
 
 예를 들어 A가 먼저 UPDATE를 수행하고 아직 COMMIT하지 않은 상태에서 B가 같은 row를 UPDATE하면 B는 A의 트랜잭션이 끝날 때까지 기다린다.
 
-```text
-Transaction A              Transaction B
-
-UPDATE
-  ↓
-Row Lock
-
-                            UPDATE
-                              ↓
-                             WAIT
-
-COMMIT
-  ↓
-Lock 해제
-                              ↓
-                            UPDATE
+```mermaid
+sequenceDiagram
+  participant A as Transaction A
+  participant B as Transaction B
+  A->>DB: UPDATE
+  Note over A: Row lock acquired
+  B->>DB: UPDATE
+  Note over B: WAIT
+  A->>DB: COMMIT
+  Note over A: Lock released
+  B->>DB: UPDATE proceeds
 ```
 
 그렇다면 Oracle이 알아서 lock을 걸어주는데 별도의 동시성 처리가 왜 필요할까?
@@ -195,12 +190,12 @@ updateCount = 0
 
 즉 낙관적 락은
 
-```text
-Lock을 미리 잡음 X
-
-수정 시
-"내가 읽었던 데이터가 아직 그대로인가?"
-확인
+```mermaid
+flowchart TD
+  O1[Do not pre-lock] --> O2[Try UPDATE with version condition]
+  O2 --> O3{Version unchanged?}
+  O3 -->|Yes| O4[UPDATE success]
+  O3 -->|No| O5[Detect conflict]
 ```
 
 하는 방식이다.
@@ -254,24 +249,18 @@ FOR UPDATE;
 
 A가 먼저 실행하면 해당 row에 lock을 획득한다.
 
-```text
-Transaction A               Transaction B
-
-SELECT FOR UPDATE
-       ↓
-     LOCK
-
-                             SELECT FOR UPDATE
-                                    ↓
-                                   WAIT
-
-UPDATE
-
-COMMIT
-   ↓
-LOCK 해제
-                                    ↓
-                                  진행
+```mermaid
+sequenceDiagram
+  participant A as Transaction A
+  participant B as Transaction B
+  A->>DB: SELECT ... FOR UPDATE
+  Note over A: LOCK acquired
+  B->>DB: SELECT ... FOR UPDATE
+  Note over B: WAIT
+  A->>DB: UPDATE
+  A->>DB: COMMIT
+  Note over A: LOCK released
+  B->>DB: Continue
 ```
 
 A가 COMMIT 또는 ROLLBACK해서 lock을 해제하기 전까지 B는 기다리게 된다.
@@ -331,14 +320,13 @@ B → x = 3
 
 라고 판단하는 것이 아니라,
 
-```text
-어떤 동시 수정이 가능한가?
-        ↓
-실제로 데이터가 유실될 수 있는가?
-        ↓
-Last Write Wins를 허용하는가?
-        ↓
-허용하지 않는다면 어떤 방식으로 제어할 것인가?
+```mermaid
+flowchart TD
+  D1[What concurrent updates are possible?] --> D2[Can data be lost?]
+  D2 --> D3[Is Last Write Wins acceptable?]
+  D3 --> D4{Decision}
+  D4 -->|Yes| D5[No additional lock strategy]
+  D4 -->|No| D6[Choose optimistic or pessimistic locking]
 ```
 
 순서로 판단하는 것이다.
