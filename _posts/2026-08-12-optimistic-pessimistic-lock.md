@@ -1,17 +1,15 @@
 ---
 layout: post
-title: "UPDATE 동시성 문제와 Optimistic Lock, Pessimistic Lock"
+title: "UPDATE 동시성과 Lock"
 date: 2026-08-12
 categories: [Database & Concurrency]
 ---
 
-# UPDATE 동시성 문제와 Optimistic Lock, Pessimistic Lock
+# UPDATE 동시성과 Lock
 
 DB에서 같은 row를 동시에 수정하면 어떻게 될까?
 
-Oracle에서는 UPDATE가 수행되면 해당 row에 lock이 걸린다.
-
-예를 들어 A가 먼저 UPDATE를 수행하고 아직 COMMIT하지 않은 상태에서 B가 같은 row를 UPDATE하면 B는 A의 트랜잭션이 끝날 때까지 기다린다.
+Oracle에서는 UPDATE가 수행되면 해당 row에 lock이 걸린다. 예를 들어 A가 먼저 UPDATE를 수행하고 아직 COMMIT하지 않은 상태에서 B가 같은 row를 UPDATE하면 B는 A의 트랜잭션이 끝날 때까지 기다린다.
 
 ```mermaid
 sequenceDiagram
@@ -28,7 +26,7 @@ sequenceDiagram
 
 그렇다면 Oracle이 알아서 lock을 걸어주는데 별도의 동시성 처리가 왜 필요할까?
 
-## Lost Update
+## Row Lock이 있어도 Lost Update는 발생한다
 
 문제는 DB가 UPDATE를 순서대로 실행해준다고 해서 애플리케이션 관점의 데이터 정합성까지 보장되는 것은 아니라는 점이다.
 
@@ -68,7 +66,7 @@ A가 변경한 값이 B에 의해 덮어써진 것이다.
 
 ---
 
-## 부분 UPDATE라면?
+## 서로 다른 컬럼을 UPDATE한다면?
 
 다만 항상 문제가 생기는 것은 아니다.
 
@@ -130,9 +128,9 @@ x = 3
 
 ---
 
-## 낙관적 락 (Optimistic Lock)
+## Optimistic Lock
 
-낙관적 락은 실제로 데이터를 미리 잠그지 않는다.
+낙관적 락(Optimistic Lock)은 실제로 데이터를 미리 잠그지 않는다.
 
 대신
 
@@ -204,9 +202,7 @@ flowchart TD
 
 ---
 
-## 수정시간을 이용할 수도 있다
-
-별도의 VERSION 컬럼 대신 최종 수정시간을 이용할 수도 있다.
+별도의 VERSION 컬럼 대신 최종 수정시간(AUDIT_DTM)을 이용할 수도 있다.
 
 예를 들어 조회 당시
 
@@ -230,9 +226,9 @@ WHERE id = 1
 
 ---
 
-## 비관적 락 (Pessimistic Lock)
+## Pessimistic Lock
 
-비관적 락은 반대로
+비관적 락(Pessimistic Lock)은 반대로
 
 > 어차피 충돌할 가능성이 있으니 처음부터 데이터를 잠근다.
 
@@ -271,7 +267,7 @@ A가 COMMIT 또는 ROLLBACK해서 lock을 해제하기 전까지 B는 기다리�
 
 ---
 
-## Optimistic Lock vs Pessimistic Lock
+## Optimistic Lock과 Pessimistic Lock 비교
 
 간단하게 정리하면 다음과 같다.
 
@@ -286,7 +282,7 @@ A가 COMMIT 또는 ROLLBACK해서 lock을 해제하기 전까지 B는 기다리�
 
 ---
 
-## 모든 UPDATE에 락 전략이 필요한 것은 아니다
+## 언제 동시성 제어가 필요한가
 
 동시성 문제를 공부하면서 처음에는 같은 row를 수정하면 무조건 낙관적 락이나 비관적 락을 적용해야 한다고 생각하기 쉽다.
 
