@@ -1,11 +1,11 @@
 ---
 layout: post
-title: "UPDATE 동시성 문제와 낙관적 락, 비관적 락"
+title: "UPDATE 동시성 문제와 Optimistic Lock, Pessimistic Lock"
 date: 2026-08-12
 categories: [Database & Concurrency]
 ---
 
-# UPDATE 동시성 문제와 낙관적 락, 비관적 락
+# UPDATE 동시성 문제와 Optimistic Lock, Pessimistic Lock
 
 DB에서 같은 row를 동시에 수정하면 어떻게 될까?
 
@@ -271,11 +271,11 @@ A가 COMMIT 또는 ROLLBACK해서 lock을 해제하기 전까지 B는 기다리�
 
 ---
 
-## 낙관적 락 vs 비관적 락
+## Optimistic Lock vs Pessimistic Lock
 
 간단하게 정리하면 다음과 같다.
 
-| | 낙관적 락 | 비관적 락 |
+| | Optimistic Lock | Pessimistic Lock |
 |---|---|---|
 | 기본 생각 | 충돌이 별로 없을 것이다 | 충돌이 발생할 것이다 |
 | 실제 Lock 선점 | X | O |
