@@ -200,7 +200,7 @@ MyBatis와 JPA의 가장 중요한 차이는 MyBatis의 경우 "어떤 SQL을 �
 
 JPA는 "어떤 Entity를 조회하고 변경할 것인가?"에 초점을 맞춘다는 점이다.
 
-(JPA도 최종적으로는 SQL과 JDBC를 사용한다. 단지 SQL 생성을 ORM이 대신 처리한다.)
+(JPA도 최종적으로는 SQL과 JDBC를 사용하긴 한다. 단지 SQL 생성을 ORM이 대신 처리한다는 것이다.)
 
 ---
 
