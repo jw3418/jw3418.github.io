@@ -1,16 +1,16 @@
 ---
 layout: post
-title: "Spring에서 MyBatis Mapper 패턴 이해하기"
+title: "MyBatis Mapper 패턴 이해하기"
 date: 2026-08-12
 categories: [Spring & Java]
 ---
 
-# Spring에서 MyBatis Mapper 패턴 이해하기
+# MyBatis Mapper 패턴 이해하기
 
 Spring 백엔드에서 흔히 사용하는 구조는 아래와 같다.
 
 ```mermaid
-flowchart TD
+flowchart LR
   C1["Controller"] --> S1["Service"] --> M1["Mapper"] --> D1["Database"]
 ```
 
@@ -18,7 +18,7 @@ flowchart TD
 
 ## Controller
 
-HTTP 요청과 응답을 담당한다.
+HTTP 요청과 응답을 담당하는 레이어이다.
 
 ```java
 @RestController
@@ -34,12 +34,11 @@ public class ItemController {
 }
 ```
 
-Controller는 요청값을 받고 Service를 호출한다.
-DB 조회나 비즈니스 판단은 넣지 않는 것이 일반적이다.
+Controller는 요청값을 받고 Service를 호출한다. DB 조회나 비즈니스 판단은 넣지 않는 것이 일반적이다.
 
 ## Service
 
-비즈니스 로직과 트랜잭션의 중심이다.
+비즈니스 로직과 트랜잭션의 중심이 되는 레이어이다.
 
 ```java
 @Service
@@ -61,21 +60,13 @@ public class ItemService {
 }
 ```
 
-예를 들어 다음과 같은 처리는 Service에서 담당한다.
+예를 들어 중복 여부 판단, 상태값 검증, 여러 Mapper 호출 조합, Transaction 처리, DB 조회 결과 가공 등은 Service에서 담당한다.
 
-```text
-- 중복 여부 판단
-- 상태값 검증
-- 여러 Mapper 호출 조합
-- 트랜잭션 처리
-- DB 조회 결과 가공
-```
-
-즉 Service는 **"SQL을 어떻게 실행할지"가 아니라 "업무를 어떻게 처리할지"**를 담당한다.
+즉 Service는 **SQL을 어떻게 실행할지**가 아니라 **업무를 어떻게 처리할지**를 담당한다.
 
 ## Mapper
 
-DB 접근을 담당한다.
+DB 접근을 담당하는 레이어이다.
 
 ```java
 @Mapper
@@ -87,7 +78,7 @@ public interface ItemMapper {
 }
 ```
 
-실제 SQL은 MyBatis XML에서 작성한다.
+실제 SQL 쿼리는 아래와 같이 MyBatis XML에 작성된다.
 
 ```xml
 <select id="selectItem" resultType="ItemVo">
@@ -101,7 +92,7 @@ public interface ItemMapper {
 구조는 실제로 다음과 같다.
 
 ```mermaid
-flowchart TD
+flowchart LR
   S2["Service"] --> M2["Mapper Interface"] --> MB2["MyBatis"] --> J2["JDBC"] --> DB2["DB"]
 ```
 
@@ -126,7 +117,7 @@ public class ItemResponseDto {
 
 보통 API 요청/응답 객체로 사용한다.
 
-VO는 프로젝트마다 의미가 조금 다르다. MyBatis 기반 엔터프라이즈 프로젝트에서는 흔히 **DB 조회 결과나 Mapper Parameter를 담는 객체**로 사용한다.
+(VO는 프로젝트마다 의미가 조금 다른데, MyBatis 기반 엔터프라이즈 프로젝트에서는 흔히 **DB 조회 결과나 Mapper Parameter를 담는 객체**로 사용한다.)
 
 ```java
 public class ItemVo {
@@ -137,37 +128,37 @@ public class ItemVo {
 }
 ```
 
-따라서 일반적인 데이터 흐름은 다음과 같다.
+따라서 일반적인 데이터 흐름은 아래와 같다.
 
 ```mermaid
-flowchart TD
+flowchart LR
   H3["HTTP Request"] --> R3["ReqDto"] --> C3["Controller"] --> S3["Service"] --> V3["VO"] --> M3["Mapper"] --> D3["DB"]
 ```
 
 조회 시에는 반대 방향으로 올라온다.
 
 ```mermaid
-flowchart TD
+flowchart LR
   D4["DB"] --> M4["Mapper"] --> V4["VO"] --> S4["Service"] --> R4["ResDto"] --> C4["Controller"]
 ```
 
 ---
 
-## JPA에서는 무엇이 달라질까
-
-MyBatis에서는 Mapper가 있었다면 JPA에서는 주로 Repository를 사용한다.
+## MyBatis와 JPA의 차이
 
 ```mermaid
-flowchart TD
+flowchart LR
   S5["Service"] --> M5["Mapper"] --> Q5["SQL"] --> D5["DB"]
 ```
 
+MyBatis에서는 위와 같이 Mapper가 있었다면 JPA에서는 아래와 같이 주로 Repository를 사용한다.
+
+(JPA(Java Persistence API)는 Java에서 ORM을 구현하기 위한 표준 명세이며, Hibernate는 이를 구현한 대표적인 구현체이다.)
+
 ```mermaid
-flowchart TD
+flowchart LR
   S6["Service"] --> R6["Repository"] --> H6["JPA / Hibernate"] --> Q6["SQL"] --> D6["DB"]
 ```
-
-MyBatis는 개발자가 SQL을 직접 작성한다.
 
 ```xml
 SELECT *
@@ -175,7 +166,7 @@ FROM TB_ITEM
 WHERE ITEM_ID = #{itemId}
 ```
 
-JPA에서는 Entity를 정의한다.
+MyBatis는 위와 같이 개발자가 SQL을 직접 작성하고 조회 결과를 객체에 매핑하는 방식이다. 반면 JPA는 아래와 같이 테이블과 매핑되는 Entity를 정의하고 객체 중심으로 데이터를 다루며, 기본적인 CRUD SQL은 JPA가 Entity의 매핑 정보를 기반으로 자동 생성하여 실행한다.
 
 ```java
 @Entity
@@ -188,7 +179,7 @@ public class Item {
 }
 ```
 
-그리고 Repository를 사용한다.
+그리고 아래와 같이 Repository를 사용한다.
 
 ```java
 public interface ItemRepository
@@ -196,7 +187,7 @@ public interface ItemRepository
 }
 ```
 
-조회는 다음과 같다.
+조회는 아래와 같이 수행할 수 있다.
 
 ```java
 Item item = itemRepository.findById(itemId)
@@ -205,70 +196,42 @@ Item item = itemRepository.findById(itemId)
 
 SQL을 직접 작성하지 않아도 Hibernate가 SQL을 생성한다.
 
-## MyBatis와 JPA의 차이
+MyBatis와 JPA의 가장 중요한 차이는 MyBatis의 경우 "어떤 SQL을 실행할 것인가?"에 초점을 맞춘다면
 
-| 구분       | MyBatis     | JPA                        |
-| -------- | ----------- | -------------------------- |
-| 방식       | SQL Mapper  | ORM                        |
-| 중심       | SQL / Table | Entity / Object            |
-| SQL      | 직접 작성       | Hibernate가 생성              |
-| DB 제어    | 높음          | 상대적으로 추상화됨                 |
-| 복잡한 조회   | 편리함         | JPQL, QueryDSL 등이 필요할 수 있음 |
-| 단순 CRUD  | 반복 코드 존재    | 매우 간단                      |
-| 변경 감지    | 없음          | Dirty Checking             |
-| 영속성 컨텍스트 | 없음          | 있음                         |
+JPA는 "어떤 Entity를 조회하고 변경할 것인가?"에 초점을 맞춘다는 점이다.
 
-가장 중요한 차이는 이것이다.
-
-```text
-MyBatis
-"어떤 SQL을 실행할 것인가?"
-
-JPA
-"어떤 Entity를 조회하고 변경할 것인가?"
-```
-
-JPA도 최종적으로는 SQL과 JDBC를 사용한다. 단지 SQL 생성을 ORM이 대신 처리한다.
+(JPA도 최종적으로는 SQL과 JDBC를 사용한다. 단지 SQL 생성을 ORM이 대신 처리한다.)
 
 ---
 
 ## 정리
 
-Spring 관점에서 계층의 책임을 정리하면 명확하다.
+Spring 관점에서 계층의 책임을 정리하자면 아래와 같다.
 
 ```text
-Controller
-→ HTTP 요청 / 응답
+Controller → HTTP 요청 / 응답
 
-Service
-→ 비즈니스 로직 / 트랜잭션
+Service → 비즈니스 로직 / 트랜잭션
 
-Mapper
-→ SQL 기반 DB 접근
+Mapper → SQL 기반 DB 접근
 
-DTO
-→ API 또는 계층 간 데이터 전달
+DTO → API 또는 계층 간 데이터 전달
 
-VO
-→ MyBatis 프로젝트에서는 주로 DB Mapping 객체
+VO → MyBatis 프로젝트에서는 주로 DB Mapping 객체
 
-Repository
-→ JPA의 데이터 접근 계층
+Repository → JPA의 데이터 접근 계층
 
-Entity
-→ JPA가 관리하는 DB Mapping 객체
+Entity → JPA가 관리하는 DB Mapping 객체
 ```
 
 MyBatis와 JPA는 Controller와 Service 구조 자체가 크게 달라지는 것이 아니다.
 
-가장 큰 차이는 **Persistence Layer를 구현하는 방식**이다.
+가장 큰 차이는 **Persistence Layer를 구현하는 방식**인 것이다.
 
 ```text
-MyBatis
-Controller → Service → Mapper → SQL → DB
+MyBatis: Controller → Service → Mapper → SQL → DB
 
-JPA
-Controller → Service → Repository → Hibernate → SQL → DB
+JPA: Controller → Service → Repository → Hibernate → SQL → DB
 ```
 
 결국 좋은 Spring 백엔드 구조의 핵심은 기술 선택보다 **HTTP, 비즈니스 로직, DB 접근의 책임을 명확하게 분리하는 것**이다.
