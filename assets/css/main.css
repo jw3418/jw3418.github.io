@@ -2,21 +2,24 @@
    Variables
    ============================================= */
 :root {
-  --bg:         #EEF3F9;
+  --bg:         #F8FAFC;
   --surface:    #FFFFFF;
-  --border:     #D1DCEA;
-  --text:       #0F1B2D;
+  --border:     #E2E8F0;
+  --text:       #0F172A;
   --text-2:     #475569;
-  --text-3:     #8FA3BC;
+  --text-3:     #94A3B8;
   --accent:     #2563EB;
+  --accent-hover: #1D4ED8;
   --accent-bg:  #EFF6FF;
   --code-bg:    #223248;
+  --gradient-start: #3B82F6;
+  --gradient-end: #2563EB;
 
   --font-ui:   'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
 
   --max-w: 720px;
-  --radius: 6px;
+  --radius: 8px;
 }
 
 /* =============================================
@@ -76,11 +79,9 @@ body {
 .site-header {
   position: sticky;
   top: 0;
-  height: 52px;
-  background: rgba(238, 243, 249, 0.9);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--border);
+  height: 60px;
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
   z-index: 100;
 }
 
@@ -91,43 +92,66 @@ body {
 }
 
 .site-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #FFFFFF;
   text-decoration: none;
-  letter-spacing: -0.01em;
-  transition: color 0.15s;
+  letter-spacing: -0.02em;
+  transition: opacity 0.2s;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.site-title:hover { color: var(--accent); }
+.site-title:hover { 
+  opacity: 0.9;
+}
 
 /* =============================================
    Main
    ============================================= */
 .site-main {
   flex: 1;
-  padding: 3rem 0 5rem;
+  padding: 4rem 0 5rem;
+  background: var(--bg);
 }
 
 /* =============================================
    Homepage
    ============================================= */
 .home-intro {
-  margin-bottom: 2.5rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid var(--border);
+  margin-bottom: 3rem;
+  padding: 2.5rem 2rem;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(37, 99, 235, 0.08) 100%);
+  border-radius: var(--radius);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.home-intro::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
 }
 
 .home-intro h1 {
-  font-size: 1.375rem;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  margin-bottom: 0.375rem;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .home-intro p {
   color: var(--text-2);
-  font-size: 0.9375rem;
+  font-size: 1rem;
+  font-weight: 400;
 }
 
 .post-list-label {
@@ -149,40 +173,57 @@ body {
 
 .cat-btn {
   font-family: var(--font-ui);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 500;
-  padding: 0.3rem 0.875rem;
+  padding: 0.4rem 1rem;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: transparent;
+  background: var(--surface);
   color: var(--text-2);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-  line-height: 1.6;
+  transition: all 0.2s ease;
+  line-height: 1.5;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .cat-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
 }
 
 .cat-btn.active {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
   border-color: var(--accent);
   color: #fff;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
 }
 
 .post-list {
   list-style: none;
   border-top: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 0.5rem 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .post-list li {
   display: flex;
   align-items: baseline;
   gap: 1.25rem;
-  padding: 0.8125rem 0;
+  padding: 0.9375rem 1.25rem;
   border-bottom: 1px solid var(--border);
+  transition: background 0.2s ease;
+}
+
+.post-list li:last-child {
+  border-bottom: none;
+}
+
+.post-list li:hover {
+  background: rgba(59, 130, 246, 0.03);
 }
 
 .post-list-empty {
@@ -205,11 +246,28 @@ body {
   text-decoration: none;
   font-size: 0.9375rem;
   font-weight: 500;
-  line-height: 1.4;
-  transition: color 0.15s;
+  line-height: 1.5;
+  transition: color 0.2s;
+  position: relative;
 }
 
-.post-list a:hover { color: var(--accent); }
+.post-list a:hover { 
+  color: var(--accent);
+}
+
+.post-list a::after {
+  content: '→';
+  position: absolute;
+  right: -1.25rem;
+  opacity: 0;
+  transition: all 0.2s ease;
+  color: var(--accent);
+}
+
+.post-list li:hover a::after {
+  opacity: 1;
+  right: -1.5rem;
+}
 
 /* =============================================
    Post Header
@@ -562,21 +620,33 @@ body {
   position: fixed;
   bottom: 1.75rem;
   right: 1.75rem;
-  width: 2.125rem;
-  height: 2.125rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text-2);
+  width: 2.5rem;
+  height: 2.5rem;
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+  border: none;
+  color: #FFFFFF;
   border-radius: 50%;
   cursor: pointer;
   display: grid;
   place-items: center;
-  font-size: 0.875rem;
+  font-size: 1rem;
   line-height: 1;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s, transform 0.2s, color 0.15s;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.site-footer {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, rgba(37, 99, 235, 0.05) 100%);
+  border-top: 1px solid rgba(59, 130, 246, 0.1);
+  padding: 2rem 0;
+}
+
+.site-footer p {
+  font-size: 0.8125rem;
+  color: var(--text-3);
+  text-align: center;
 }
 
 #back-to-top.visible {
@@ -585,8 +655,8 @@ body {
 }
 
 #back-to-top:hover {
-  color: var(--accent);
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
 }
 
 /* =============================================
