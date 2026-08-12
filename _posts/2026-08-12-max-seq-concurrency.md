@@ -1,11 +1,11 @@
 ---
 layout: post
-title: "MAX(seq) + 1은 동시 요청에 안전할까?"
+title: "MAX(seq) + 1과 동시성 문제"
 date: 2026-08-12
 categories: [Database & Concurrency]
 ---
 
-# MAX(seq) + 1은 동시 요청에 안전할까?
+# MAX(seq) + 1과 동시성 문제
 
 특정 ID별로 순번을 관리해야 하는 경우 아래처럼 `MAX(seq) + 1`을 이용할 수 있다.
 
@@ -28,7 +28,7 @@ A / 20260812 / 3
 
 그런데 동시에 두 요청이 들어오면 문제가 생길 수 있다.
 
-## 동시 요청이 들어오면
+## MAX(seq) + 1의 Race Condition
 
 현재 `MAX(seq) = 3`인 상황에서 A와 B가 동시에 조회했다고 해보자.
 
@@ -48,7 +48,7 @@ PK (id, date, seq)
 
 중복 데이터가 실제로 저장되지는 않지만, 나중에 INSERT한 요청은 PK 중복으로 실패한다.
 
-## Retry
+## PK 충돌 시 Retry
 
 충돌한 요청에서 seq를 다시 조회하고 INSERT를 다시 시도하는 방법을 사용할 수 있다.
 
@@ -82,7 +82,7 @@ INSERT seq=5 → 성공
 
 중요한 점은 INSERT만 다시 하는 게 아니라 **seq 조회부터 다시 해야 한다는 것**이다.
 
-## 이게 동시성을 막는 건가?
+## Retry는 동시성 제어가 아니다
 
 정확히는 동시 요청 자체를 막는 방식은 아니다.
 
@@ -103,7 +103,7 @@ flowchart TD
 
 반대로 동일한 ID에 동시 요청이 많이 발생한다면 retry 역시 계속 충돌할 수 있기 때문에 다른 방법을 고려해야 한다.
 
-## Oracle Sequence는?
+## Oracle Sequence로 해결할 수 있을까?
 
 Oracle Sequence를 사용하면 동시성 문제 없이 증가하는 값을 얻을 수 있다.
 
