@@ -1,4 +1,5 @@
 ---
+
 layout: post
 title: "Spring Cloud OpenFeign 동작 이해하기"
 date: 2026-08-13
@@ -9,7 +10,7 @@ categories: [Spring & Java]
 
 MSA 기반의 Spring Boot 서비스를 개발하면서 다른 서비스의 API를 호출하기 위해 FeignClient를 사용할 일이 있었다.
 
-코드 자체는 단순했다.
+사용하는 방법 자체는 단순했다.
 
 ```java
 @FeignClient(
@@ -32,9 +33,9 @@ CustomerRes customer =
     customerClient.getCustomer(customerId);
 ```
 
-처음에는 사용법만 익혀서 사용했지만, 코드를 보다 보니 한 가지가 잘 이해되지 않았다.
+처음에는 정해진 사용법에 맞춰 사용했지만, 코드를 보다 보니 한 가지 의문이 생겼다.
 
-`CustomerClient`에는 메서드 선언만 있고 실제 구현체가 보이지 않는다.
+`CustomerClient`는 인터페이스이기 때문에 메서드 선언만 있고 직접 작성한 구현체가 없다.
 
 그런데 이 메서드를 호출하면 다른 애플리케이션으로 HTTP 요청이 전달되고, 응답은 다시 Java 객체로 반환된다.
 
@@ -48,45 +49,69 @@ CustomerClient
 customer-service
 ```
 
-특히 같은 Spring Container의 Bean을 호출하는 것도 아닌데 코드에서는 일반적인 메서드 호출과 거의 동일하게 보인다는 점이 흥미로웠다.
+**구현체도 보이지 않는 인터페이스의 메서드 호출이 어떻게 다른 서버로 전달되는 HTTP 요청이 되는 것일까?**
 
 이 구조를 따라가 보니 FeignClient의 핵심은 단순히 HTTP 호출 코드를 줄여주는 데 있지 않았다.
 
-**실제로는 네트워크를 통해 이루어지는 서비스 간 HTTP 통신을 Java 인터페이스와 메서드 호출의 형태로 추상화하고 있었다.**
+코드에서는 일반적인 메서드 호출처럼 보이지만 그 추상화 뒤에서는 실제 네트워크 통신이 일어나고 있었다.
 
-그리고 이 추상화 뒤에 실제 네트워크 통신이 존재한다는 것을 이해하고 나니 Timeout, Retry, 멱등성, 장애 전파 같은 문제를 왜 함께 고려해야 하는지도 자연스럽게 연결됐다.
+그리고 이 사실을 이해하니 FeignClient를 사용할 때 Timeout, Retry, Circuit Breaker 같은 요소를 왜 함께 고려해야 하는지도 자연스럽게 연결됐다.
 
-이 글에서는 FeignClient의 메서드 호출이 실제 HTTP 요청으로 변환되는 과정을 따라가고, 그 과정에서 서비스 간 통신을 어떻게 바라봐야 하는지 정리해본다.
+이 글에서는 **FeignClient의 메서드 호출이 실제 HTTP 요청으로 변환되는 과정을 살펴보고, 이 추상화 뒤에 존재하는 네트워크 통신의 특성**에 대해 정리하고자 한다.
 
 ---
 
-## @FeignClient
+## 다른 서비스의 Bean을 직접 호출할 수는 없다
 
-MSA에서는 하나의 애플리케이션 안에서 모든 기능을 처리하지 않고 여러 서비스가 각자의 역할을 담당한다.
-
-예를 들어 주문 서비스에서 고객 정보가 필요하다고 해보자.
-
-```text
-order-service
-     ↓
-customer-service
-```
-
-같은 Spring 애플리케이션 내부라면 다른 Service Bean을 주입받아서 호출할 수 있다.
+같은 Spring 애플리케이션 안이라면 다른 Service Bean을 주입받아 호출할 수 있다.
 
 ```java
 customerService.getCustomer(customerId);
 ```
 
-하지만 MSA에서는 `order-service`와 `customer-service`가 서로 다른 애플리케이션이다.
+개념적으로 보면 같은 JVM과 Spring Container 안에서 객체의 메서드를 호출하는 것이다.
 
-각각 별도의 JVM과 Spring Container에서 실행되기 때문에 `customer-service`의 Bean을 `order-service`에서 직접 주입받을 수 없다.
+```text
+Spring Application
 
-따라서 서비스 간에는 HTTP와 같은 네트워크 통신이 필요하다.
+OrderService
+     ↓
+CustomerService
+```
 
-Spring Cloud OpenFeign은 이러한 **서비스 간 HTTP 호출을 Java 인터페이스 형태로 작성할 수 있게 해주는 도구**다.
+하지만 MSA에서는 상황이 다르다.
 
-FeignClient는 다음과 같이 인터페이스로 정의할 수 있다.
+```text
+order-service
+
+      ↓
+
+customer-service
+```
+
+`order-service`와 `customer-service`는 서로 다른 애플리케이션이고 각각 별도의 JVM과 Spring Container에서 실행된다.
+
+따라서 `order-service`에서 `customer-service`의 Bean을 직접 주입받을 수 없다.
+
+두 서비스 사이에는 네트워크 경계가 존재한다.
+
+```text
+order-service
+     │
+     │ HTTP
+     ▼
+customer-service
+```
+
+결국 다른 서비스의 기능을 사용하려면 HTTP와 같은 방식으로 원격 API를 호출해야 한다.
+
+Spring Cloud OpenFeign은 이 HTTP 호출을 **Java 인터페이스 형태로 선언할 수 있도록 추상화한 Client**다.
+
+---
+
+## 그런데 FeignClient의 구현체는 어디에 있을까?
+
+FeignClient는 다음과 같이 인터페이스로 정의한다.
 
 ```java
 @FeignClient(
@@ -102,13 +127,13 @@ public interface CustomerClient {
 }
 ```
 
-그런데 여기서 처음 가졌던 의문으로 다시 돌아가면, 여전히 실제 구현체는 보이지 않는다.
+그런데 인터페이스 안에는 실제 HTTP 요청을 보내는 코드가 없다.
 
 ```java
 CustomerRes getCustomer(String customerId);
 ```
 
-메서드 선언만 존재하는데 Service에서는 해당 인터페이스를 주입받아 정상적으로 사용할 수 있다.
+그럼에도 Service에서는 정상적으로 주입받을 수 있다.
 
 ```java
 @Service
@@ -127,17 +152,7 @@ public class OrderService {
 }
 ```
 
-그렇다면 **구현체가 보이지 않는 이 인터페이스의 메서드 호출은 어떻게 실제 HTTP 요청으로 이어지는 것일까?**
-
-이를 이해하려면 FeignClient가 생성되는 방식을 먼저 볼 필요가 있다.
-
----
-
-## FeignClient와 Proxy
-
-`@FeignClient`가 붙은 인터페이스를 발견하면 Spring Cloud OpenFeign이 해당 인터페이스를 기반으로 **Proxy 객체를 생성하고 Spring Bean으로 등록한다.**
-
-따라서 실제로 주입되는 것은 인터페이스 자체가 아니라 런타임에 생성된 Proxy 객체이다.
+이것이 가능한 이유는 Spring Cloud OpenFeign이 `@FeignClient`가 선언된 인터페이스를 기반으로 **런타임에 Proxy 객체를 생성하고 Spring Bean으로 등록하기 때문**이다.
 
 ```text
 OrderService
@@ -147,71 +162,23 @@ CustomerClient
 Feign Proxy
 ```
 
-Service에서
-
-```java
-customerClient.getCustomer(customerId);
-```
-
-를 호출하면 Proxy가 해당 호출을 가로챈다.
-
-그리고 `@FeignClient`, `@GetMapping`, `@PathVariable` 등에 정의된 정보를 이용해 HTTP 요청을 만든다.
-
-예를 들어 설정이
-
-```yaml
-feign:
-  customer-api:
-    url: http://customer-service
-```
-
-이고
-
-```java
-@GetMapping("/customers/{customerId}")
-```
-
-가 정의되어 있다면 실제로는 대략 다음과 같은 요청이 만들어진다.
-
-```text
-GET http://customer-service/customers/1234
-```
-
-즉 Java 코드에서는 일반 메서드를 호출한 것처럼 보이지만 실제로는 네트워크를 통해 다른 서비스의 API를 호출하고 있는 것이다.
+즉 Service에 주입되는 객체는 우리가 직접 작성한 구현 클래스가 아니라 Feign이 생성한 Proxy다.
 
 ---
 
-## FeignClient 호출 흐름
+## 메서드 호출은 어떻게 HTTP 요청으로 바뀔까?
 
-전체적인 흐름을 보면 다음과 같다.
-
-```mermaid
-flowchart LR
-    A["OrderService"] --> B["CustomerClient"]
-    B --> C["Feign Proxy"]
-    C --> D["HTTP Request"]
-    D --> E["customer-service"]
-    E --> F["HTTP Response"]
-    F --> C
-    C --> G["CustomerRes"]
-```
-
-Feign Proxy는 HTTP 응답을 받아 JSON 등의 응답 데이터를 Java 객체로 변환하고, Service에는 `CustomerRes`를 반환한다.
-
-그래서 호출하는 입장에서는
+Service에서 다음 코드를 실행한다고 해보자.
 
 ```java
-CustomerRes customer =
-    customerClient.getCustomer(customerId);
+customerClient.getCustomer("1234");
 ```
 
-처럼 일반 Java 메서드를 호출하는 형태로 사용할 수 있다.
+코드만 보면 평범한 Java 메서드 호출이다.
 
----
+하지만 실제 호출을 처리하는 것은 Feign Proxy다.
 
-## @FeignClient의 name과 url
-
-FeignClient를 보다 보면 보통 다음과 같은 설정을 볼 수 있다.
+Proxy는 FeignClient에 선언된 정보를 이용해 HTTP 요청을 구성한다.
 
 ```java
 @FeignClient(
@@ -220,9 +187,16 @@ FeignClient를 보다 보면 보통 다음과 같은 설정을 볼 수 있다.
 )
 ```
 
-여기서 `name`은 FeignClient를 식별하기 위한 이름이고, `url`은 실제 요청을 보낼 대상 서비스의 주소다.
+그리고 메서드에는 요청 방법과 Path가 선언되어 있다.
 
-환경에 따라 호출 주소가 달라질 수 있기 때문에 URL은 코드에 직접 넣기보다 설정 파일로 분리하는 경우가 많다.
+```java
+@GetMapping("/customers/{customerId}")
+CustomerRes getCustomer(
+    @PathVariable String customerId
+);
+```
+
+예를 들어 URL 설정이 다음과 같다면
 
 ```yaml
 feign:
@@ -230,69 +204,165 @@ feign:
     url: http://customer-service
 ```
 
-개발 환경과 운영 환경의 주소가 다르더라도 애플리케이션 코드는 그대로 유지하고 설정만 변경할 수 있다.
+메서드 호출은 개념적으로 다음 HTTP 요청으로 변환된다.
 
----
+```text
+customerClient.getCustomer("1234")
 
-## RestTemplate과의 차이
+            ↓
 
-FeignClient 없이도 다른 서비스를 HTTP로 호출할 수 있다.
-
-예를 들어 직접 HTTP Client를 사용한다면 요청 URL을 만들고 HTTP Method, Header, 응답 타입 등을 직접 지정해야 한다.
-
-FeignClient는 이 부분을 인터페이스 선언으로 추상화한다.
-
-```java
-@GetMapping("/customers/{customerId}")
-CustomerRes getCustomer(@PathVariable String customerId);
+GET http://customer-service/customers/1234
 ```
 
-호출하는 Service 입장에서는 HTTP 요청을 직접 만드는 코드가 사라지고 **어떤 API를 호출하는지 인터페이스 자체에 드러난다.**
+이후 실제 HTTP Client가 요청을 보내고 대상 서비스의 응답을 받는다.
+
+응답 데이터는 Decoder 등을 거쳐 `CustomerRes`와 같은 Java 객체로 변환되어 호출한 Service로 반환된다.
+
+전체 흐름을 단순화하면 다음과 같다.
+
+```mermaid
+flowchart LR
+    A["OrderService"] --> B["Feign Proxy"]
+    B --> C["HTTP Request 생성"]
+    C --> D["HTTP Client"]
+    D --> E["customer-service"]
+    E --> F["HTTP Response"]
+    F --> G["Response Decode"]
+    G --> H["CustomerRes"]
+```
+
+결국 다음 한 줄 뒤에는
+
+```java
+CustomerRes customer =
+    customerClient.getCustomer(customerId);
+```
+
+대략 다음과 같은 과정이 숨어 있다.
+
+```text
+Java Method Call
+        ↓
+Feign Proxy
+        ↓
+Request 생성
+        ↓
+HTTP 통신
+        ↓
+Response
+        ↓
+Java Object 변환
+```
+
+FeignClient가 HTTP 통신 자체를 없앤 것이 아니라 **HTTP 통신을 Java 메서드 호출처럼 보이도록 추상화한 것**이다.
 
 ---
 
-## FeignClient와 HTTP 통신
+## 추상화 뒤에는 네트워크가 존재한다
 
-FeignClient를 사용하면 코드상으로는 일반 메서드 호출처럼 보인다.
+여기까지 이해하고 나니 FeignClient를 보는 관점이 조금 달라졌다.
+
+코드만 보면 다음 두 호출은 비슷해 보인다.
+
+```java
+customerService.getCustomer(customerId);
+```
 
 ```java
 customerClient.getCustomer(customerId);
 ```
 
-하지만 같은 JVM 안에서 실행되는 일반적인 메서드 호출과 달리 중간에 실제 네트워크 통신이 존재한다.
+하지만 실제 동작은 전혀 다르다.
 
-```mermaid
-flowchart LR
-    A["OrderService"] --> B["FeignClient"]
-    B --> C["HTTP"]
-    C --> D["customer-service"]
+```text
+Local Call
+
+OrderService
+    ↓
+CustomerService
+
+같은 JVM 내부의 Method Call
 ```
 
-따라서 호출 대상 서비스의 응답이 느려지거나 장애가 발생하면 현재 서비스도 영향을 받는다.
+반면 FeignClient 호출은
 
-Spring MVC 기반 서버에서는 FeignClient의 응답을 기다리는 동안 요청을 처리하던 Thread도 함께 대기한다. 이런 요청이 계속 쌓이면 사용할 수 있는 Thread가 줄어들고, 다른 정상적인 요청의 처리까지 느려질 수 있다.
+```text
+Remote Call
+
+OrderService
+    ↓
+Feign Proxy
+    ↓
+HTTP
+    ↓
+customer-service
+```
+
+이다.
+
+이 차이가 중요한 이유는 **Remote Call에는 Local Call에는 없던 실패 가능성이 생기기 때문**이다.
+
+대상 서비스가 정상이어도 네트워크가 느릴 수 있고, 연결에 실패할 수도 있으며, 상대 서비스의 응답이 늦어질 수도 있다.
+
+```text
+FeignClient 호출
+      ↓
+Network
+      ↓
+Downstream Service
+```
+
+즉 FeignClient가 호출 코드를 단순하게 만들어도 **네트워크의 특성까지 사라지는 것은 아니다.**
+
+이 지점부터 Timeout이나 Retry 같은 설정도 단순한 부가 기능이 아니라 서비스 간 통신을 위해 필요한 요소로 보이기 시작한다.
+
+---
+
+## 응답이 늦으면 현재 서비스도 기다린다
+
+예를 들어 `customer-service`의 응답이 평소보다 크게 느려졌다고 해보자.
+
+```text
+order-service
+     ↓
+FeignClient
+     ↓
+customer-service 응답 지연
+```
+
+Spring MVC 기반의 동기 처리 구조에서는 FeignClient의 응답을 기다리는 동안 현재 요청을 처리하던 Thread도 함께 대기한다.
 
 ```text
 Downstream Service 응답 지연
         ↓
 FeignClient 응답 대기
         ↓
-요청 처리 Thread 점유
-        ↓
-대기 요청 증가
-        ↓
-현재 Service까지 응답 지연
+Request Thread 점유
 ```
 
-즉 FeignClient를 단순히 다른 Service의 메서드를 호출하는 기능으로 보기보다는, **다른 서비스의 HTTP API를 Java 인터페이스 형태로 호출할 수 있게 추상화한 Client**라고 이해하는 것이 더 정확하다.
+한두 개의 요청이라면 큰 문제가 아닐 수 있다.
+
+하지만 이런 요청이 계속 쌓이면 사용 가능한 Thread가 줄어들고 현재 서비스의 다른 요청에도 영향을 줄 수 있다.
+
+```text
+Downstream 지연
+      ↓
+대기 Thread 증가
+      ↓
+가용 Thread 감소
+      ↓
+현재 Service의 처리 지연
+```
+
+결국 Downstream Service의 문제가 현재 서비스로 전파될 수 있다.
+
+그래서 Remote Call에서는 **얼마나 기다릴 것인지에 대한 경계**가 필요하다.
 
 ---
 
-## Timeout 설정
+## Timeout은 기다림의 경계를 정한다
 
-서비스 간 호출에서 한 서비스의 지연이 다른 서비스로 계속 전파되지 않도록 Timeout 설정이 필요하다.
-
-FeignClient에서는 크게 Connect Timeout과 Read Timeout을 생각할 수 있다.
+FeignClient를 이용한 HTTP 통신에서는 대표적으로 Connect Timeout과 Read Timeout을 생각할 수 있다.
 
 ```text
 Connect Timeout
@@ -302,53 +372,98 @@ Read Timeout
 → 연결 이후 응답을 기다리는 시간
 ```
 
-대상 서버와 연결 자체가 지연된다면 Connect Timeout이 발생할 수 있고, 연결은 되었지만 서버의 처리가 오래 걸린다면 Read Timeout이 발생할 수 있다.
+연결 자체를 맺지 못하고 있다면 Connect Timeout이 문제가 되고,
 
-```mermaid
-flowchart TD
-    A["Feign Request"] --> B{"Connection?"}
-    B -->|"연결 실패/지연"| C["Connect Timeout"]
-    B -->|"연결 성공"| D{"Response?"}
-    D -->|"응답 지연"| E["Read Timeout"]
-    D -->|"응답 수신"| F["Success"]
+```text
+Client
+   ────── X ──────>
+                Server
 ```
 
-Timeout을 너무 길게 설정하면 장애 상황에서 Thread가 오랫동안 대기할 수 있고, 너무 짧게 설정하면 정상적으로 처리될 요청까지 실패할 수 있다.
+연결은 성공했지만 상대 서비스의 응답이 늦다면 Read Timeout을 고려하게 된다.
 
-따라서 호출하는 API의 특성과 평소 응답 시간을 기준으로 적절한 값을 설정해야 한다.
+```text
+Client
+   ───────────────>
+                Server
+
+   <── 응답 대기 ──
+```
+
+Timeout을 너무 길게 설정하면 장애 상황에서도 Thread와 Connection 같은 리소스를 오랫동안 점유할 수 있다.
+
+반대로 너무 짧게 설정하면 정상적으로 처리될 요청까지 실패시킬 수 있다.
+
+따라서 Timeout은 단순히 크게 잡는 것이 아니라 **Downstream API의 특성과 평소 응답 시간, 현재 서비스가 허용할 수 있는 지연 시간을 함께 고려해서 정해야 한다.**
 
 ---
 
-## Retry와 멱등성
+## 실패했다고 해서 무조건 다시 호출할 수는 없다
 
-Timeout이나 일시적인 네트워크 오류가 발생했을 때 Retry를 통해 요청을 다시 시도할 수 있다.
+네트워크 통신에서는 일시적인 오류나 Timeout이 발생할 수 있기 때문에 Retry를 생각할 수 있다.
 
-하지만 모든 요청을 무조건 Retry하는 것은 안전하지 않다.
+하지만 여기서 또 하나의 문제가 생긴다.
 
-예를 들어 데이터를 저장하는 API를 호출했다고 해보자.
+호출한 쪽에서 Timeout이 발생했다고 해서 **상대 서비스의 작업까지 실패했다고 단정할 수는 없다.**
+
+예를 들어 다음 API를 호출했다고 해보자.
 
 ```http
 POST /orders
 ```
 
-서버에서는 INSERT까지 정상적으로 완료했지만 응답을 전달하는 과정에서 Timeout이 발생할 수 있다.
+서버에서는 이미 INSERT가 완료되었지만 응답을 반환하는 과정에서 Timeout이 발생할 수 있다.
 
 ```text
-1차 요청 → INSERT 성공 → 응답 Timeout
-2차 요청 → Retry → INSERT 재실행
+Client              Server
+
+POST /orders  ────────>
+
+                    INSERT 성공
+
+     <────── Response
+             X Timeout
 ```
 
-호출한 쪽에서는 첫 번째 요청이 실패한 것처럼 보이기 때문에 동일한 요청을 다시 보내게 되고, 서버에서는 같은 작업이 중복으로 실행될 수 있다.
+Client 입장에서는 실패한 요청처럼 보인다.
 
-따라서 Retry를 적용할 때는 **해당 요청을 다시 실행해도 안전한지**를 함께 고려해야 한다.
+이 상태에서 단순히 Retry하면 같은 요청이 다시 전달된다.
 
-이때 같이 등장하는 개념이 멱등성(Idempotency)이다. 같은 요청을 여러 번 수행해도 결과가 동일하도록 설계되어 있다면 Retry를 비교적 안전하게 적용할 수 있다.
+```text
+1차 요청
+→ INSERT 성공
+→ Response Timeout
+
+2차 요청
+→ Retry
+→ INSERT 재실행
+```
+
+그래서 Retry를 적용할 때는 단순히
+
+```text
+실패
+ ↓
+재시도
+```
+
+로 생각해서는 안 된다.
+
+**같은 요청을 다시 실행해도 안전한가?**
+
+를 함께 판단해야 한다.
+
+여기서 멱등성(Idempotency)이 중요해진다.
+
+동일한 요청을 여러 번 수행하더라도 시스템의 최종 상태가 의도치 않게 중복 변경되지 않도록 설계되어 있다면 Retry를 더 안전하게 적용할 수 있다.
+
+즉 Retry는 네트워크 실패에 대한 해결책이면서 동시에 **API의 멱등성 설계와 연결되는 문제**다.
 
 ---
 
-## 장애 전파와 Circuit Breaker
+## 하나의 Remote Call 장애가 어디까지 전파될까?
 
-MSA에서는 하나의 요청이 여러 서비스를 거쳐 처리되는 경우가 많다.
+MSA에서는 하나의 요청이 여러 서비스를 거쳐 처리될 수 있다.
 
 ```mermaid
 flowchart LR
@@ -357,51 +472,200 @@ flowchart LR
     C --> D["External API"]
 ```
 
-여기서 External API의 응답이 느려지면 Customer Service가 응답을 기다리고, 이를 호출한 Order Service와 BFF도 차례로 영향을 받을 수 있다.
+여기서 External API가 느려진다고 해보자.
 
 ```text
-External API 장애
+External API 지연
        ↓
-Customer Service 지연
+Customer Service 대기
        ↓
-Order Service 지연
+Order Service 대기
        ↓
-BFF 지연
-       ↓
-사용자 요청 지연
+BFF 대기
 ```
 
-이처럼 Downstream Service의 문제가 상위 서비스로 연쇄적으로 전파될 수 있다.
+처음 문제는 가장 아래의 External API에서 발생했지만 그 영향을 기다리고 있는 상위 서비스들도 함께 받는다.
 
-이미 장애가 발생해 계속 실패하고 있는 서비스를 매 요청마다 호출하는 것도 비효율적이다. 매번 Timeout이 발생할 때까지 기다리면 Thread와 Connection 같은 리소스가 계속 사용되기 때문이다.
+이런 요청이 계속 유입되면 여러 서비스의 Thread와 Connection 같은 리소스가 함께 소모될 수 있다.
 
-이때 사용할 수 있는 방법 중 하나가 Circuit Breaker다.
+```text
+하나의 Downstream 장애
 
-Circuit Breaker는 일정 수준 이상 실패가 발생하면 해당 서비스에 대한 호출을 일시적으로 차단한다.
+        ↓
+
+여러 Upstream Service의
+리소스까지 점유
+```
+
+즉 서비스가 여러 개로 분리되어 있다고 해서 장애까지 자동으로 격리되는 것은 아니다.
+
+**동기적인 Remote Call로 연결되어 있다면 지연과 장애 역시 호출 관계를 따라 전파될 수 있다.**
+
+---
+
+## Circuit Breaker는 실패한 호출을 계속 보내지 않는다
+
+이미 특정 Downstream Service에서 지속적으로 실패가 발생하고 있다고 해보자.
+
+이 상태에서 모든 요청을 계속 전달하면 매번 Timeout이나 실패를 기다려야 한다.
+
+```text
+Request
+   ↓
+FeignClient
+   ↓
+장애 Service
+   ↓
+Timeout
+```
+
+Circuit Breaker는 일정 수준 이상의 실패를 감지하면 해당 서비스로의 호출을 일시적으로 차단할 수 있다.
 
 ```mermaid
 flowchart LR
     A["Request"] --> B{"Circuit"}
-    B -->|"Closed"| C["FeignClient 호출"]
+    B -->|"Closed"| C["Remote Call"]
     B -->|"Open"| D["호출 차단"]
 ```
 
-정상 상태에서는 요청을 전달하지만 실패가 반복되면 Circuit을 Open하여 실제 HTTP 호출을 막는다. 이후 일정 시간이 지나면 일부 요청을 다시 보내 대상 서비스가 복구되었는지 확인하고, 정상 상태가 확인되면 다시 호출을 허용할 수 있다.
+정상 상태에서는 Circuit이 Closed 상태로 요청을 전달한다.
 
-Spring 환경에서는 Resilience4j와 같은 라이브러리를 이용해 Circuit Breaker를 적용할 수 있다.
+실패가 일정 기준 이상 누적되면 Open 상태로 전환해 실제 Remote Call을 막는다.
+
+일정 시간이 지난 뒤에는 일부 요청을 다시 허용해 Downstream Service가 복구되었는지 확인할 수 있다.
+
+```text
+Closed
+  ↓
+실패 누적
+  ↓
+Open
+  ↓
+일정 시간 경과
+  ↓
+Half-Open
+  ↓
+복구 확인
+  ↓
+Closed
+```
+
+Spring 환경에서는 Resilience4j와 같은 라이브러리를 이용해 이러한 패턴을 적용할 수 있다.
+
+Circuit Breaker의 목적은 단순히 실패한 요청을 빠르게 반환하는 데만 있는 것이 아니다.
+
+**장애가 발생한 Downstream Service와의 호출을 제한해 그 영향이 현재 서비스까지 계속 전파되는 것을 줄이는 것**에 더 가깝다.
 
 ---
 
-## FeignClient 사용 시 고려사항
+## 처음 생각했던 FeignClient와 실제 FeignClient
 
-FeignClient의 사용법 자체는 단순하다.
+처음 FeignClient를 사용했을 때는 다음 정도로 이해했다.
+
+```text
+다른 Service의 API를
+Java Interface로 편하게 호출하는 기능
+```
+
+사용하는 코드만 보면 실제로 그렇게 보인다.
 
 ```java
 customerClient.getCustomer(customerId);
 ```
 
-하지만 이 한 줄 뒤에서는 실제 네트워크 통신이 발생한다.
+하지만 내부 구조를 따라가 보면 이 한 줄은 다음 과정을 감추고 있다.
 
-따라서 FeignClient를 사용할 때는 인터페이스를 어떻게 정의할지만 보는 것이 아니라 **Timeout, Retry와 멱등성, 장애 전파와 같은 네트워크 통신의 특성까지 함께 고려해야 한다.**
+```text
+Method Call
+    ↓
+Feign Proxy
+    ↓
+HTTP Request
+    ↓
+Network
+    ↓
+Downstream Service
+    ↓
+HTTP Response
+    ↓
+Java Object
+```
 
-FeignClient는 서비스 간 HTTP 통신을 편하게 만들어주는 Client이지, 네트워크 통신에서 발생할 수 있는 문제까지 없애주는 것은 아니다.
+그리고 `Network`라는 경계가 생기는 순간 고려해야 할 문제도 달라진다.
+
+```text
+Local Method Call
+
+→ 같은 Process 안에서 실행
+
+
+Remote Call
+
+→ Connection 실패 가능
+→ 응답 지연 가능
+→ Timeout 가능
+→ 요청 결과가 불확실할 수 있음
+→ 장애가 호출 관계를 따라 전파될 수 있음
+```
+
+FeignClient는 이런 복잡성을 코드에서 상당 부분 감춰준다.
+
+하지만 **감춰져 있다는 것과 존재하지 않는다는 것은 다르다.**
+
+이 차이를 이해하는 것이 FeignClient를 단순히 사용하는 것과 서비스 간 통신의 관점에서 이해하는 것의 차이라고 생각한다.
+
+---
+
+## 정리
+
+FeignClient를 사용하면 다른 서비스의 API를 다음과 같이 호출할 수 있다.
+
+```java
+CustomerRes customer =
+    customerClient.getCustomer(customerId);
+```
+
+겉으로 보면 일반적인 Java 메서드 호출과 크게 다르지 않다.
+
+하지만 내부에서는 Feign이 생성한 Proxy가 메서드 호출을 HTTP 요청으로 변환하고 실제 네트워크를 통해 다른 서비스와 통신한다.
+
+```text
+Java Method Call
+       ↓
+Feign Proxy
+       ↓
+HTTP Request
+       ↓
+Network
+       ↓
+Downstream Service
+```
+
+처음에는 FeignClient를 **HTTP 호출 코드를 간단하게 만들어주는 도구** 정도로 생각했다.
+
+하지만 내부 동작을 따라가 보니 더 중요하게 느껴진 것은 그 반대쪽이었다.
+
+Feign은 Remote Call을 Local Method Call처럼 보이게 만들어주지만 **Remote Call 자체를 Local Call로 바꾸는 것은 아니다.**
+
+그 뒤에는 여전히 네트워크가 존재한다.
+
+그리고 네트워크가 존재하기 때문에 응답 지연과 연결 실패가 발생할 수 있고, Timeout이 필요하며, Retry를 적용할 때는 멱등성을 생각해야 한다.
+
+서비스가 연쇄적으로 연결되어 있다면 하나의 Downstream 장애가 Upstream까지 전파될 수 있기 때문에 Circuit Breaker와 같은 장애 격리 방법도 필요해진다.
+
+```text
+FeignClient
+    ↓
+Remote Call
+    ↓
+Network
+    ├── Timeout
+    ├── Retry / Idempotency
+    └── Failure Propagation / Circuit Breaker
+```
+
+결국 FeignClient를 이해하면서 가장 중요하다고 느낀 부분은 **추상화가 복잡성을 없애는 것이 아니라 사용하기 쉬운 형태로 감춰준다는 점**이었다.
+
+코드에서는 한 줄의 메서드 호출처럼 보이더라도 그 경계가 JVM을 넘어가는 순간부터는 네트워크 통신의 특성을 함께 생각해야 한다.
+
+**FeignClient를 이해한다는 것은 인터페이스를 선언하는 방법을 아는 것보다, 그 인터페이스 뒤에 숨겨진 Remote Call을 인식하는 것에 더 가깝다.**
