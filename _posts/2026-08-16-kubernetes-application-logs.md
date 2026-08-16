@@ -156,7 +156,7 @@ flowchart LR
 각 Worker Node에 Log Agent를 하나씩 띄워, 거기서 발생하는 로그를 별도의 중앙 로그 플랫폼으로 지속적으로 전달하는 구조를 생각할 수 있다. Kubernetes에서는 보통 이 Agent를 Node마다 배치하기 위해 DaemonSet을 쓴다.
 
 <div align="center">
-<img src="/assets/images/kubernetes/945adb90-95c1-4975-ae53-a38fb0b6c193.png" alt="중앙 로그 수집 구조" width="800">
+<img src="/assets/images/kubernetes/945adb90-95c1-4975-ae53-a38fb0b6c193.png" alt="중앙 로그 수집 구조">
 </div>
 
 ```mermaid
