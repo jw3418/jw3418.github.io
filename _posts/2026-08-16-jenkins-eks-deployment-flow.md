@@ -35,7 +35,7 @@ flowchart LR
         D["Deployment"] --> P["Pod"]
     end
 
-    J -. "어떻게 배포하지?" .-> D
+    J -. "ㅇㅇ?" .-> D
 ```
 
 처음에는 Jenkins가 빌드한 애플리케이션을 EKS에 직접 전달하는 것처럼 생각했다.
