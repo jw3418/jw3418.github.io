@@ -272,6 +272,13 @@ body {
 
 .post-content p { margin-bottom: 1.125rem; }
 
+.post-content img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.375rem auto;
+}
+
 .post-content ul,
 .post-content ol {
   margin-bottom: 1.125rem;
