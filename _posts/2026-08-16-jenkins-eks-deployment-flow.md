@@ -8,26 +8,28 @@ categories: [CI/CD]
 
 # Kubernetes 애플리케이션 배포 흐름 이해하기
 
-Kubernetes 환경에서 Jenkins를 이용해 배포하면 하나의 Pipeline 안에서 빌드부터 배포까지 모두 처리된다.
+Kubernetes 기반의 서비스를 운영하면서 Jenkins를 통해 개발 환경에 애플리케이션을 배포할 일이 많았다.
 
-하지만 실제 구성요소를 보면 Jenkins와 애플리케이션이 실행되는 위치는 분리되어 있을 수 있다.
+Jenkins에서 Pipeline을 실행하고 배포가 완료되면 EKS의 Pod가 새로운 버전으로 교체된다. 처음에는 이를 자연스럽게 사용했지만, 어느 순간 한 가지 의문이 들었다.
 
-```text
+**Jenkins는 별도의 EC2 Instance에서 실행되고 있는데 어떻게 EKS의 애플리케이션을 배포하는 것일까?**
+
+```text id="ak31be"
 EC2
 └── Jenkins
+
+       ↓ ?
 
 EKS Cluster
 └── Deployment
     └── Pod
 ```
 
-Jenkins는 EC2에서 실행되고 있지만 실제 애플리케이션은 EKS의 Pod에서 실행된다.
+단순히 "Jenkins가 EKS에 배포한다"고 알고 있을 때는 이 구조가 잘 보이지 않았다.
 
-그렇다면 EC2에서 실행되는 Jenkins는 어떻게 EKS에 새로운 버전의 애플리케이션을 배포하는 것일까?
+실제 흐름을 따라가 보니 Jenkins가 애플리케이션을 Pod에 직접 전달하는 구조가 아니었다. **실행할 Container Image를 준비하는 과정과 Kubernetes의 Desired State를 변경하는 과정이 분리되어 있었고, Jenkins는 이 두 과정을 Pipeline으로 연결하고 있었다.**
 
-이 흐름을 이해하려면 Jenkins가 애플리케이션을 Kubernetes에 직접 전달한다고 보기보다, **실행할 Artifact를 준비하는 과정과 Kubernetes의 실행 상태를 변경하는 과정**을 분리해서 볼 필요가 있다.
-
----
+이 글에서는 Jenkins에서 배포를 시작했을 때 Container Image가 어떻게 전달되고, Kubernetes가 어떤 과정을 통해 새로운 버전의 Pod를 실행하게 되는지 정리해본다.
 
 ## Jenkins는 배포 과정을 실행한다
 
