@@ -50,7 +50,7 @@ Jenkins는 **실행할 Container Image를 Registry에 준비하고, Kubernetes�
 
 ---
 
-## Jenkins는 배포를 직접 수행하는 시스템일까?
+## Jenkins는 실제로 무엇을 하는 걸까?
 
 Jenkins 자체를 보면 특별한 배포 장비가 있는 것은 아니다.
 
@@ -78,7 +78,7 @@ Jenkins의 역할은 **배포에 필요한 작업을 정해진 순서대로 실�
 
 ---
 
-## 배포 흐름을 두 부분으로 나눠보기
+## Kubernetes 배포는 두 가지 흐름으로 나뉜다
 
 Jenkins Pipeline을 따라가 보면 Kubernetes 배포는 크게 두 흐름으로 나눌 수 있다.
 
@@ -128,7 +128,7 @@ Jenkins
 
 ---
 
-## Jenkins가 만드는 것은 실행 가능한 Image다
+## Container Image는 어떻게 전달될까?
 
 먼저 Artifact가 전달되는 흐름을 보자.
 
@@ -172,7 +172,7 @@ Deployment
 
 ---
 
-## Jenkins는 어떻게 EKS의 상태를 변경할까?
+## EKS 밖의 Jenkins는 어떻게 Deployment를 변경할까?
 
 Artifact가 준비되면 다음으로 Kubernetes가 새로운 Image를 사용하도록 만들어야 한다.
 
@@ -249,7 +249,7 @@ Jenkins는 **Kubernetes가 유지해야 하는 상태를 변경한다.**
 
 ---
 
-## Kubernetes는 선언된 상태를 실제 상태로 만든다
+## Kubernetes는 어떻게 새로운 Pod를 만들어낼까?
 
 Deployment는 이미 `v2`를 실행하도록 변경되었지만 현재 Pod들은 아직 `v1`을 실행하고 있을 수 있다.
 
@@ -295,7 +295,7 @@ Kubernetes
 
 ---
 
-## 그래서 Kubernetes 배포는 Pod를 "수정"하지 않는다
+## Kubernetes는 기존 Pod를 수정하지 않는다
 
 Desired State를 기준으로 배포 과정을 바라보면 Kubernetes의 배포 방식도 이해하기 쉬워진다.
 
@@ -349,7 +349,7 @@ v2
 
 ---
 
-## 배포 명령의 성공과 Rollout 완료는 다른 시점이다
+## 배포 명령의 성공이 배포 완료를 의미할까?
 
 이 구조를 이해하면 Jenkins Pipeline의 성공도 조금 다르게 볼 수 있다.
 
@@ -386,7 +386,7 @@ Jenkins는 Desired State의 변경을 요청하고, Kubernetes는 실제 상태�
 
 ---
 
-## 전체 흐름 다시 보기
+## 전체 배포 흐름 다시 보기
 
 처음에는 배포 과정을 다음처럼 바라봤다.
 
