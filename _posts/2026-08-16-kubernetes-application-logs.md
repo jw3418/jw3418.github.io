@@ -23,9 +23,15 @@ kubectl logs <pod-name> -n <namespace>
 
 애플리케이션은 EKS의 Pod에서 실행되고 있는데 Jenkins는 별도의 EC2 Instance에서 실행될 수 있다.
 
-<div align="center">
-<img src="/assets/images/kubernetes/945adb90-95c1-4975-ae53-a38fb0b6c193.png" alt="Jenkins와 EKS 구조" width="600">
-</div>
+```text
+EC2
+└── Jenkins
+
+
+EKS Cluster
+└── Pod
+    └── Application
+```
 
 **그렇다면 EKS 밖에 있는 Jenkins에서는 어떻게 각 Pod의 애플리케이션 로그를 볼 수 있는 것일까?**
 
@@ -43,9 +49,12 @@ kubectl logs <pod-name> -n <namespace>
 
 Kubernetes에서 애플리케이션은 Pod 내부의 Container에서 실행된다.
 
-<div align="center">
-<img src="/assets/images/kubernetes/945adb90-95c1-4975-ae53-a38fb0b6c193.png" alt="Worker Node와 Pod 구조" width="500">
-</div>
+```text
+Worker Node
+└── Pod
+    └── Container
+        └── Spring Boot Application
+```
 
 Spring Boot 애플리케이션에서 다음과 같이 로그를 남긴다고 해보자.
 
@@ -100,9 +109,19 @@ kubectl logs order-service-7d8f9c6b5-x2k9p \
 
 개념적인 흐름은 다음과 같다.
 
-<div align="center">
-<img src="/assets/images/kubernetes/945adb90-95c1-4975-ae53-a38fb0b6c193.png" alt="kubectl logs 흐름" width="700">
-</div>
+```text
+Developer
+    ↓
+kubectl logs
+    ↓
+Kubernetes API Server
+    ↓
+해당 Pod가 실행 중인 Node
+    ↓
+kubelet
+    ↓
+Container Log
+```
 
 즉 개발자가 Worker Node에 직접 SSH로 접속해서 로그 파일을 찾는 구조가 아니다.
 
@@ -140,9 +159,13 @@ kubectl logs
 
 Deployment가 애플리케이션을 세 개의 Replica로 실행하고 있다고 해보자.
 
-<div align="center">
-<img src="/assets/images/kubernetes/945adb90-95c1-4975-ae53-a38fb0b6c193.png" alt="Pod 분산 구조" width="500">
-</div>
+```text
+order-service
+
+├── Pod A
+├── Pod B
+└── Pod C
+```
 
 각 Pod에는 동일한 애플리케이션이 실행되지만 각각 별도의 Container다.
 
@@ -206,9 +229,17 @@ order-service
 
 Jenkins는 별도의 EC2 Instance에서 실행되고 있을 수 있다.
 
-<div align="center">
-<img src="/assets/images/kubernetes/945adb90-95c1-4975-ae53-a38fb0b6c193.png" alt="Jenkins와 EKS 분리 구조" width="600">
-</div>
+```text
+EC2
+└── Jenkins
+
+
+EKS
+└── order-service
+    ├── Pod A
+    ├── Pod B
+    └── Pod C
+```
 
 그런데 Jenkins에서 각 MSA 서비스의 로그를 확인할 수 있다.
 
@@ -440,9 +471,11 @@ Kubernetes API
 
 반면 중앙 로그 플랫폼은
 
-<div align="center">
-<img src="/assets/images/kubernetes/945adb90-95c1-4975-ae53-a38fb0b6c193.png" alt="로그 수집 vs 조회" width="700">
-</div>
+```text
+Pod A ─┐
+Pod B ─┼─→ Log Agent → Central Log Platform
+Pod C ─┘
+```
 
 처럼 동작한다.
 
@@ -550,9 +583,15 @@ Customer Service Log
 
 이때 Request ID나 Trace ID와 같은 Correlation 정보가 있으면 서로 다른 로그를 하나의 요청 기준으로 연결할 수 있다.
 
-<div align="center">
-<img src="/assets/images/kubernetes/945adb90-95c1-4975-ae53-a38fb0b6c193.png" alt="Trace ID를 통한 로그 연결" width="650">
-</div>
+```text
+traceId=abc123
+
+BFF Pod A
+    ↓
+Order Pod C
+    ↓
+Customer Pod B
+```
 
 로그를 바라보는 단위가 점점 올라가는 것이다.
 
@@ -667,9 +706,15 @@ Container Log
 
 반면 Datadog과 같은 중앙 로그 플랫폼은 로그가 필요할 때 원본 Pod를 조회하는 것이 아니라 각 Container에서 발생한 로그를 지속적으로 별도의 시스템으로 수집한다.
 
-<div align="center">
-<img src="/assets/images/kubernetes/945adb90-95c1-4975-ae53-a38fb0b6c193.png" alt="전체 로그 아키텍처" width="850">
-</div>
+```text
+Container Logs
+      ↓
+Log Agent
+      ↓
+Central Storage
+      ↓
+검색 / 분석
+```
 
 그리고 여러 Pod에서 발생한 로그에 Service, Namespace, Pod, Version 같은 Context를 부여하면 분산된 로그를 하나의 서비스 관점에서 볼 수 있다.
 
