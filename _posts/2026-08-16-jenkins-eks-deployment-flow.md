@@ -61,7 +61,7 @@ EC2 Instance
 
 Jenkins는 이 서버에서 Pipeline에 정의된 작업을 실행한다.
 
-```bash id="wi720h"
+```bash
 ./gradlew build
 
 docker build ...
@@ -111,7 +111,7 @@ Deployment 변경
 
 두 흐름을 이어보면 다음과 같다.
 
-```mermaid id="1gwy8o"
+```mermaid
 flowchart TD
     A["Git Repository"] --> B["Jenkins"]
 
@@ -427,7 +427,7 @@ v2
 
 예를 들어 다음 명령이 정상적으로 실행되었다고 해보자.
 
-```bash id="ez7msr"
+```bash
 helm upgrade ...
 ```
 
@@ -449,7 +449,7 @@ Container 실행
 
 필요하다면 Pipeline에서 다음과 같이 Rollout 완료까지 확인할 수 있다.
 
-```bash id="hvu4dh"
+```bash
 kubectl rollout status deployment/my-service
 ```
 
@@ -475,7 +475,7 @@ Pod
 
 하지만 내부 흐름을 따라가 보면 실제로는 다음과 같이 역할이 나뉜다.
 
-```mermaid id="8sh019"
+```mermaid
 flowchart TD
     A["Git Repository"] --> B["Jenkins"]
 

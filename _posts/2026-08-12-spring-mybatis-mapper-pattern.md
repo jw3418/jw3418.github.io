@@ -49,7 +49,7 @@ POST /items
 
 Spring MVC에서는 Controller가 HTTP 요청을 받아 애플리케이션 내부 로직으로 전달한다.
 
-```java id="v47k0w"
+```java
 @RestController
 @RequiredArgsConstructor
 public class ItemController {
@@ -99,7 +99,7 @@ Controller는 요청이 어떤 업무 과정을 거쳐 처리되어야 하는지
 
 Service는 실제 비즈니스 로직이 조합되는 계층이다.
 
-```java id="19cfba"
+```java
 @Service
 @RequiredArgsConstructor
 public class ItemService {
@@ -142,7 +142,7 @@ INSERT
 
 이 과정에서는 여러 Mapper가 호출될 수도 있다.
 
-```java id="g41apq"
+```java
 ItemVo item = itemMapper.selectItem(itemId);
 
 validateStatus(item);
@@ -178,7 +178,7 @@ Service
 
 Service에서 실제 데이터가 필요해지면 Mapper를 호출한다.
 
-```java id="0uqibq"
+```java
 @Mapper
 public interface ItemMapper {
 
@@ -190,7 +190,7 @@ public interface ItemMapper {
 
 그리고 실제 SQL은 MyBatis XML에 정의할 수 있다.
 
-```xml id="pftkyq"
+```xml
 <select id="selectItem" resultType="ItemVo">
     SELECT ITEM_ID,
            ITEM_STATUS
@@ -201,7 +201,7 @@ public interface ItemMapper {
 
 실제 호출 흐름은 다음과 같다.
 
-```mermaid id="xgz7ck"
+```mermaid
 flowchart LR
     S["Service"] --> M["Mapper Interface"]
     M --> MB["MyBatis"]
@@ -223,7 +223,7 @@ Mapper
 
 예를 들어
 
-```sql id="q6vlsh"
+```sql
 SELECT ITEM_ID,
        ITEM_STATUS
 FROM TB_ITEM
@@ -252,7 +252,7 @@ WHERE ITEM_ID = #{itemId}
 
 MyBatis Mapper를 처음 보면 한 가지 특이한 점이 있다.
 
-```java id="95vwud"
+```java
 @Mapper
 public interface ItemMapper {
 
@@ -264,13 +264,13 @@ public interface ItemMapper {
 
 그런데 Service에서는 정상적으로 Mapper를 주입받아 사용할 수 있다.
 
-```java id="q5smrr"
+```java
 private final ItemMapper itemMapper;
 ```
 
 그리고 다음 호출도 정상적으로 실행된다.
 
-```java id="v0q31j"
+```java
 itemMapper.selectItem(itemId);
 ```
 
@@ -294,13 +294,13 @@ SQL 실행
 
 예를 들어
 
-```java id="8tz8jm"
+```java
 itemMapper.selectItem("100");
 ```
 
 을 호출하면 MyBatis는 Mapper의 namespace와 Method 이름 등을 기준으로 연결된 Statement를 찾아간다.
 
-```xml id="48fbbj"
+```xml
 <select id="selectItem">
     ...
 </select>
@@ -316,7 +316,7 @@ itemMapper.selectItem("100");
 
 클라이언트가 다음 데이터를 전달한다고 해보자.
 
-```json id="a49gnf"
+```json
 {
   "itemId": "100"
 }
@@ -324,7 +324,7 @@ itemMapper.selectItem("100");
 
 API 요청은 Request DTO로 받을 수 있다.
 
-```java id="7e3ej4"
+```java
 public class ItemRequestDto {
 
     private String itemId;
@@ -333,7 +333,7 @@ public class ItemRequestDto {
 
 응답 역시 API에서 필요한 형태로 정의한다.
 
-```java id="f6dtsf"
+```java
 public class ItemResponseDto {
 
     private String itemId;
@@ -345,7 +345,7 @@ DTO는 외부와 데이터를 주고받는 형태를 표현한다.
 
 반면 MyBatis 기반 프로젝트에서는 DB 조회 결과나 Mapper Parameter를 담기 위해 VO라는 이름의 객체를 사용하는 경우가 있다.
 
-```java id="kfjh3b"
+```java
 public class ItemVo {
 
     private String itemId;
@@ -366,7 +366,7 @@ VO
 
 그러면 전체 데이터 흐름은 다음과 같이 볼 수 있다.
 
-```mermaid id="chdzy0"
+```mermaid
 flowchart LR
     H["HTTP Request"] --> D["Request DTO"]
     D --> C["Controller"]
@@ -378,7 +378,7 @@ flowchart LR
 
 조회 결과는 반대 방향으로 올라온다.
 
-```mermaid id="u5v95s"
+```mermaid
 flowchart LR
     DB["Database"] --> M["Mapper"]
     M --> V["VO"]
@@ -434,7 +434,7 @@ VO
 
 예를 들어 조회 SQL을 튜닝한다고 해보자.
 
-```sql id="kl0mhb"
+```sql
 SELECT ...
 FROM ...
 WHERE ...
@@ -472,14 +472,14 @@ Controller와 Service의 기본적인 책임은 크게 달라지지 않는다.
 
 MyBatis는 개발자가 SQL을 직접 정의한다.
 
-```mermaid id="ckax5g"
+```mermaid
 flowchart LR
     S["Service"] --> M["Mapper"]
     M --> Q["SQL"]
     Q --> DB["Database"]
 ```
 
-```xml id="f83jsd"
+```xml
 <select id="selectItem" resultType="ItemVo">
     SELECT ITEM_ID,
            ITEM_STATUS
@@ -496,7 +496,7 @@ flowchart LR
 
 JPA에서는 테이블과 매핑되는 Entity를 정의하고 객체를 중심으로 데이터를 다룬다.
 
-```java id="p3esoh"
+```java
 @Entity
 @Table(name = "TB_ITEM")
 public class Item {
@@ -509,20 +509,20 @@ public class Item {
 
 그리고 Repository를 통해 Entity를 조회한다.
 
-```java id="qcsouq"
+```java
 public interface ItemRepository
         extends JpaRepository<Item, String> {
 }
 ```
 
-```java id="6e35n5"
+```java
 Item item = itemRepository.findById(itemId)
         .orElseThrow();
 ```
 
 기본적인 CRUD에서는 JPA 구현체인 Hibernate가 Entity Mapping 정보를 기반으로 SQL을 생성해 실행한다.
 
-```mermaid id="1v9xcr"
+```mermaid
 flowchart LR
     S["Service"] --> R["Repository"]
     R --> H["JPA / Hibernate"]
