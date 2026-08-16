@@ -1,5 +1,4 @@
 ---
-
 layout: post
 title: "Kubernetes 애플리케이션 배포 흐름 이해하기"
 date: 2026-08-16
@@ -14,7 +13,7 @@ Kubernetes 기반의 서비스를 운영하면서 Jenkins를 통해 개발 환�
 
 처음에는 이를 단순히
 
-```text id="lqf8sk"
+```text
 Jenkins
    ↓
 EKS 배포
@@ -26,7 +25,7 @@ EKS 배포
 
 **Jenkins는 별도의 EC2 Instance에서 실행되고 있는데, 어떻게 EKS 안의 Pod를 변경할 수 있는 것일까?**
 
-```text id="yakxg0"
+```text
 EC2
 └── Jenkins
 
@@ -55,7 +54,7 @@ Jenkins는 **실행할 Container Image를 Registry에 준비하고, Kubernetes�
 
 예를 들어 EC2에 Jenkins Controller가 구성되어 있다면 다음과 같은 구조이다.
 
-```text id="x1qltm"
+```text
 EC2 Instance
 └── Jenkins
 ```
@@ -88,7 +87,7 @@ Jenkins Pipeline을 따라가 보면 Kubernetes 배포는 크게 두 흐름으�
 
 첫 번째는 **실행할 Artifact를 준비하는 과정**이다.
 
-```text id="78pf34"
+```text
 Source Code
     ↓
 Application Build
@@ -100,7 +99,7 @@ ECR Push
 
 두 번째는 **Kubernetes가 새로운 Artifact를 실행하도록 상태를 변경하는 과정**이다.
 
-```text id="g4dpmu"
+```text
 Jenkins
     ↓
 Helm / kubectl
@@ -130,7 +129,7 @@ flowchart TD
 
 여기서 처음 생각했던 구조와 실제 구조의 차이가 드러난다.
 
-```text id="059kps"
+```text
 처음 생각
 
 Jenkins
@@ -160,7 +159,7 @@ Jenkins
 
 Jenkins는 Source Code를 빌드하고 Container Image를 만든다.
 
-```text id="1ec4m2"
+```text
 Source Code
     ↓
 Application Build
@@ -172,7 +171,7 @@ Container Image
 
 Image는 ECR과 같은 Container Registry에 Push된다.
 
-```text id="ksl7ft"
+```text
 Jenkins
    │
    │ docker push
@@ -182,7 +181,7 @@ ECR
 
 예를 들어 배포마다 다음과 같은 Image가 만들어질 수 있다.
 
-```text id="rj4r39"
+```text
 my-service:20260816-a1b2c3
 my-service:20260816-d4e5f6
 ```
@@ -193,7 +192,7 @@ my-service:20260816-d4e5f6
 
 Image Tag에 Commit SHA나 Build Number처럼 배포 버전을 식별할 수 있는 값을 사용하면 Source Code와 실제 배포된 Artifact도 연결할 수 있다.
 
-```text id="z22uym"
+```text
 Git Commit
     ↓
 Container Image
@@ -213,7 +212,7 @@ Artifact가 준비되면 다음으로 Kubernetes가 새로운 Image를 사용하
 
 여기서 처음 가졌던 의문으로 돌아온다.
 
-```text id="pq29jr"
+```text
 EC2
 └── Jenkins
 
@@ -227,7 +226,7 @@ Jenkins가 EKS 외부에 있는데도 Deployment를 변경할 수 있는 이유�
 
 `kubectl`과 `Helm` 역시 Kubernetes API를 사용하는 Client다.
 
-```text id="kt2ozm"
+```text
 Jenkins
    │
    │ Helm / kubectl
@@ -245,7 +244,7 @@ Deployment
 
 중요한 것은 Jenkins가 실행되는 환경에서 다음 조건을 만족하는가이다.
 
-```text id="2ow8pi"
+```text
 Jenkins
  ├── EKS API Endpoint에 접근 가능
  ├── Kubernetes 인증 가능
@@ -264,14 +263,14 @@ AWS 환경에서는 IAM을 이용한 인증과 Kubernetes 측의 권한 설정 �
 
 현재 Deployment가 다음 Image를 사용하고 있다고 해보자.
 
-```text id="a21gzb"
+```text
 Deployment
 └── image: my-service:v1
 ```
 
 새로운 Image를 ECR에 Push한 뒤 Jenkins는 `Helm`이나 `kubectl`을 이용해 Deployment가 새로운 Image를 사용하도록 변경한다.
 
-```text id="jfu0fs"
+```text
 Before
 
 image: my-service:v1
@@ -284,7 +283,7 @@ image: my-service:v2
 
 이 요청은 Kubernetes API를 통해 전달된다.
 
-```text id="dg72cp"
+```text
 Jenkins
    ↓
 Helm / kubectl
@@ -298,7 +297,7 @@ Deployment Spec 변경
 
 Jenkins는 **Kubernetes가 유지해야 하는 상태를 변경한다.**
 
-```text id="j0mfar"
+```text
 기존 Desired State
 → my-service:v1
 
@@ -318,7 +317,7 @@ Jenkins는 **Kubernetes가 유지해야 하는 상태를 변경한다.**
 
 Deployment는 이미 `v2`를 실행하도록 변경되었지만 현재 Pod들은 아직 `v1`을 실행하고 있을 수 있다.
 
-```text id="lny48x"
+```text
 Desired State
 → my-service:v2
 
@@ -334,7 +333,7 @@ Kubernetes Controller는 선언된 상태와 현재 상태를 지속적으로 �
 
 Deployment의 Pod Template이 변경되면 새로운 ReplicaSet이 만들어지고, 그 ReplicaSet을 통해 새로운 Pod가 생성된다.
 
-```text id="4ev2gg"
+```text
 Deployment
     ↓
 New ReplicaSet
@@ -344,7 +343,7 @@ New Pod
 
 새로운 Pod는 자신의 Spec에 정의된 Image를 ECR에서 Pull하여 Container를 실행한다.
 
-```text id="gnw015"
+```text
 New Pod
    ↓
 ECR
@@ -356,7 +355,7 @@ Container 실행
 
 이 지점에서 Jenkins와 Kubernetes의 책임이 명확하게 나뉜다.
 
-```text id="njtnv5"
+```text
 Jenkins
 → 새로운 Desired State를 전달
 
@@ -374,7 +373,7 @@ Desired State를 기준으로 배포 과정을 바라보면 Kubernetes의 배포
 
 전통적인 서버 배포에서는 다음과 같이 기존 서버에 새로운 실행 파일을 올리고 프로세스를 재시작할 수 있다.
 
-```text id="ayzq3y"
+```text
 Server
    ↓
 새로운 JAR 배포
@@ -388,7 +387,7 @@ Pod Template이 변경되면 **새로운 버전의 Pod를 만들고 기존 Pod�
 
 Replica가 3개라고 하면 기존 상태는 다음과 같다.
 
-```text id="om9twy"
+```text
 v1
 v1
 v1
@@ -396,13 +395,13 @@ v1
 
 RollingUpdate 과정에서는 점진적으로 새로운 Pod가 만들어질 수 있다.
 
-```text id="heczjf"
+```text
 v1
 v1
 v2
 ```
 
-```text id="slxuly"
+```text
 v1
 v2
 v2
@@ -410,7 +409,7 @@ v2
 
 최종적으로 새로운 상태에 도달한다.
 
-```text id="0f3037"
+```text
 v2
 v2
 v2
@@ -436,7 +435,7 @@ helm upgrade ...
 
 하지만 Kubernetes에서는 그 이후에도 실제 상태를 변경하는 작업이 이어진다.
 
-```text id="gyzm7g"
+```text
 Deployment 변경
         ↓
 New ReplicaSet
@@ -466,7 +465,7 @@ Jenkins는 Desired State의 변경을 요청하고, Kubernetes는 실제 상태�
 
 처음에는 배포 과정을 다음처럼 바라봤다.
 
-```text id="g737ht"
+```text
 Jenkins
    ↓
 EKS
@@ -496,7 +495,7 @@ flowchart TD
 
 각 구성요소의 책임도 명확하게 구분할 수 있다.
 
-```text id="rsnnmw"
+```text
 Jenkins
 → CI/CD Pipeline 실행
 → Container Image 생성 및 Push
@@ -533,7 +532,7 @@ Jenkins 화면에서는 하나의 Pipeline으로 보이지만 내부에서는 **
 
 먼저 실행할 Artifact가 만들어진다.
 
-```text id="i3k11x"
+```text
 Source Code
     ↓
 Jenkins
@@ -545,7 +544,7 @@ ECR
 
 그리고 Kubernetes가 어떤 Artifact를 실행해야 하는지가 변경된다.
 
-```text id="v2z8ax"
+```text
 Jenkins
     ↓
 Kubernetes API
@@ -557,7 +556,7 @@ Desired State 변경
 
 그 이후 실제 실행 상태를 만드는 것은 Kubernetes다.
 
-```text id="ysvdgs"
+```text
 Desired State 변경
         ↓
 Reconciliation

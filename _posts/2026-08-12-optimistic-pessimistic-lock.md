@@ -1,5 +1,4 @@
 ---
-
 layout: post
 title: "UPDATE 동시성과 Lock"
 date: 2026-08-12

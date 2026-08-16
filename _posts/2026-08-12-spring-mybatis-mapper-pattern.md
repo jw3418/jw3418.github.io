@@ -1,5 +1,4 @@
 ---
-
 layout: post
 title: "MyBatis Mapper 패턴 이해하기"
 date: 2026-08-12
@@ -10,7 +9,7 @@ categories: [Spring & Java]
 
 Spring Boot와 MyBatis 기반의 API를 개발하면서 자연스럽게 다음과 같은 구조를 사용하게 되었다.
 
-```text id="7l0jvn"
+```text
 Controller
     ↓
 Service
@@ -44,7 +43,7 @@ Database
 
 클라이언트에서 다음과 같은 요청이 들어왔다고 해보자.
 
-```text id="f7g4bw"
+```text
 POST /items
 ```
 
@@ -68,7 +67,7 @@ public class ItemController {
 
 Controller의 관심사는 HTTP에 가깝다.
 
-```text id="v90nmq"
+```text
 HTTP Request
     ↓
 Controller
@@ -80,7 +79,7 @@ Request DTO
 
 반대로 다음과 같은 업무 판단까지 Controller에 들어가기 시작하면 역할이 섞이게 된다.
 
-```text id="zofb9r"
+```text
 Controller
 
 ├── HTTP Request 처리
@@ -125,7 +124,7 @@ public class ItemService {
 
 예를 들어 다음과 같은 흐름이다.
 
-```text id="yt0f14"
+```text
 요청
  ↓
 기존 데이터 조회
@@ -164,7 +163,7 @@ historyMapper.insertHistory(item);
 
 따라서 상태 검증, 여러 데이터 접근 작업의 조합, 비즈니스 예외 처리, 트랜잭션 경계 등은 일반적으로 Service의 책임이 된다.
 
-```text id="c4ndnk"
+```text
 Service
 
 ├── Business Rule
@@ -214,7 +213,7 @@ Mapper는 기존 DAO와 비슷한 Persistence Layer의 역할을 한다.
 
 여기서 Service와 Mapper의 책임을 나누는 기준도 조금 더 명확해진다.
 
-```text id="95hy9q"
+```text
 Service
 → 무엇을 처리해야 하는가?
 
@@ -235,7 +234,7 @@ WHERE ITEM_ID = #{itemId}
 
 반면 조회된 `ITEM_STATUS`를 보고
 
-```text id="2gx9ig"
+```text
 현재 상태에서 변경 가능한가?
 
 이미 처리된 요청인가?
@@ -279,7 +278,7 @@ itemMapper.selectItem(itemId);
 
 개념적으로 보면 다음과 같다.
 
-```text id="y4r8kv"
+```text
 Service
    ↓
 ItemMapper
@@ -357,7 +356,7 @@ public class ItemVo {
 
 프로젝트마다 VO라는 용어를 사용하는 방식에는 차이가 있지만, 이런 구조에서는 다음과 같이 역할을 구분할 수 있다.
 
-```text id="u1ixwb"
+```text
 DTO
 → API 요청 / 응답 형태
 
@@ -402,7 +401,7 @@ flowchart LR
 
 여기까지 보면 처음의 구조를 조금 다르게 볼 수 있다.
 
-```text id="c81tll"
+```text
 Controller
     ↓
 Service
@@ -416,7 +415,7 @@ Database
 
 각 계층은 서로 다른 이유로 변경된다.
 
-```text id="exm0dl"
+```text
 Controller
 → API Spec이 변경될 때
 
@@ -445,7 +444,7 @@ WHERE ...
 
 반대로
 
-```text id="lycm0v"
+```text
 "특정 상태에서는 수정할 수 없다."
 ```
 
@@ -461,7 +460,7 @@ WHERE ...
 
 이 구조를 이해하고 나면 MyBatis와 JPA의 차이도 단순히
 
-```text id="brcfd5"
+```text
 Mapper vs Repository
 ```
 
@@ -533,7 +532,7 @@ flowchart LR
 
 따라서 두 기술의 관점을 단순화하면 다음과 같다.
 
-```text id="jjvvvz"
+```text
 MyBatis
 → SQL 중심
 → 어떤 SQL을 실행할 것인가?
@@ -558,7 +557,7 @@ JPA
 
 예를 들어 다음 로직이 있다고 해보자.
 
-```text id="5gjz1v"
+```text
 요청 수신
    ↓
 현재 데이터 조회
@@ -576,7 +575,7 @@ JPA
 
 반대로 책임을 분리하면 같은 요청도 다음과 같이 볼 수 있다.
 
-```text id="85r3bc"
+```text
 Controller
 → 요청을 받는다
 
@@ -597,7 +596,7 @@ Mapper
 
 MyBatis 기반 Spring 애플리케이션의 요청 흐름은 일반적으로 다음과 같이 이어진다.
 
-```text id="sk1bb0"
+```text
 HTTP Request
      ↓
 Controller
@@ -617,7 +616,7 @@ Database
 
 하지만 각 계층의 책임을 따라가 보면 구조를 나눈 이유가 보인다.
 
-```text id="ypn5fa"
+```text
 Controller
 → HTTP 요청과 응답
 
@@ -639,7 +638,7 @@ VO
 
 주로 Persistence Layer의 접근 방식이 달라진다.
 
-```text id="30hh6j"
+```text
 MyBatis
 
 Service
@@ -674,7 +673,7 @@ Service에 단순 SQL Parameter 조립만 가득할 수도 있고, Mapper SQL �
 
 결국 계층형 구조의 목적은 정해진 형태를 지키는 것이 아니라 **변경되는 이유가 다른 코드들을 서로 분리하는 것**에 있다.
 
-```text id="s1qhkn"
+```text
 API가 바뀐다
 → Controller / DTO
 
