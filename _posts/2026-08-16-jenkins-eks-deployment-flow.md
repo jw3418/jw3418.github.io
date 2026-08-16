@@ -1,11 +1,11 @@
 ---
 layout: post
-title: "Kubernetes 애플리케이션 배포 흐름 이해하기"
+title: "Kubernetes 서비스 배포 흐름 이해하기"
 date: 2026-08-16
 categories: [CI/CD]
 ---
 
-# Kubernetes 애플리케이션 배포 흐름 이해하기
+# Kubernetes 서비스 배포 흐름 이해하기
 
 Kubernetes 기반의 서비스를 운영하면서 Jenkins를 통해 개발 환경에 애플리케이션을 배포할 일이 많았다.
 
@@ -25,15 +25,17 @@ EKS 배포
 
 **Jenkins는 별도의 EC2 Instance에서 실행되고 있는데, 어떻게 EKS 안의 Pod를 변경할 수 있는 것일까?**
 
-```text
-EC2
-└── Jenkins
+```mermaid
+flowchart LR
+    subgraph EC2["EC2 Instance"]
+        J["Jenkins"]
+    end
 
-       ↓ ?
+    subgraph EKS["EKS Cluster"]
+        D["Deployment"] --> P["Pod"]
+    end
 
-EKS Cluster
-└── Deployment
-    └── Pod
+    J -. "어떻게 배포하지?" .-> D
 ```
 
 처음에는 Jenkins가 빌드한 애플리케이션을 EKS에 직접 전달하는 것처럼 생각했다.
@@ -44,20 +46,15 @@ Jenkins는 **실행할 Container Image를 Registry에 준비하고, Kubernetes�
 
 그리고 실제로 새로운 Pod를 만들고 실행 상태를 변경하는 것은 Kubernetes다.
 
-이 글에서는 Jenkins에서 배포를 시작했을 때 **Application이 어떻게 Container Image가 되고, 그 Image가 어떻게 실제 Pod 실행까지 이어지는지**에 대해 살펴보고자 한다.
+이 글에서는 Jenkins에서 배포를 시작했을 때 **Application이 Container Image로 빌드되고, 해당 Image가 Kubernetes에서 실제 Pod로 실행되기까지의 과정**을 살펴보고자 한다.
 
 ---
 
 ## Jenkins는 배포를 직접 수행하는 시스템일까?
 
-먼저 Jenkins 자체부터 보면 특별한 배포 장비가 있는 것은 아니다.
+Jenkins 자체를 보면 특별한 배포 장비가 있는 것은 아니다.
 
-예를 들어 EC2에 Jenkins Controller가 구성되어 있다면 다음과 같은 구조이다.
-
-```text
-EC2 Instance
-└── Jenkins
-```
+예를 들어 Jenkins Controller가 별도의 EC2 Instance에서 실행되는 구조를 생각해볼 수 있다.
 
 Jenkins는 이 서버에서 Pipeline에 정의된 작업을 실행한다.
 
@@ -71,7 +68,7 @@ docker push ...
 helm upgrade ...
 ```
 
-환경에 따라 실제 작업은 Jenkins Controller가 아니라 별도의 Jenkins Agent에서 실행될 수도 있다.
+환경에 따라 실제 작업은 Jenkins Controller가 아니라 별도의 Jenkins Agent에서 수행될 수도 있다.
 
 여기서 중요한 점은 Jenkins가 EKS 내부에서 실행되고 있기 때문에 배포할 수 있는 것이 아니라는 것이다.
 
@@ -85,46 +82,24 @@ Jenkins의 역할은 **배포에 필요한 작업을 정해진 순서대로 실�
 
 Jenkins Pipeline을 따라가 보면 Kubernetes 배포는 크게 두 흐름으로 나눌 수 있다.
 
-첫 번째는 **실행할 Artifact를 준비하는 과정**이다.
+첫 번째는 **실행할 Artifact를 준비하는 과정**이고, 두 번째는 **Kubernetes가 새로운 Artifact를 실행하도록 상태를 변경하는 과정**이다.
 
-```text
-Source Code
-    ↓
-Application Build
-    ↓
-Container Image Build
-    ↓
-ECR Push
-```
-
-두 번째는 **Kubernetes가 새로운 Artifact를 실행하도록 상태를 변경하는 과정**이다.
-
-```text
-Jenkins
-    ↓
-Helm / kubectl
-    ↓
-Kubernetes API
-    ↓
-Deployment 변경
-```
-
-두 흐름을 이어보면 다음과 같다.
+두 흐름을 함께 보면 다음과 같다.
 
 ```mermaid
-flowchart TD
-    A["Git Repository"] --> B["Jenkins"]
+flowchart LR
+    G["Git Repository"] --> J["Jenkins"]
 
-    B --> C["Application Build"]
-    C --> D["Container Image Build"]
-    D --> E["ECR"]
+    J --> B["Application Build"]
+    B --> I["Container Image Build"]
+    I --> E["ECR"]
 
-    B --> F["Helm / kubectl"]
-    F --> G["Kubernetes API"]
-    G --> H["Deployment 변경"]
+    J --> H["Helm / kubectl"]
+    H --> API["Kubernetes API"]
+    API --> D["Deployment 변경"]
 
-    H --> I["New Pod"]
-    I --> J["ECR에서 Image Pull"]
+    D --> P["New Pod"]
+    E -. "Image Pull" .-> P
 ```
 
 여기서 처음 생각했던 구조와 실제 구조의 차이가 드러난다.
@@ -159,25 +134,16 @@ Jenkins
 
 Jenkins는 Source Code를 빌드하고 Container Image를 만든다.
 
-```text
-Source Code
-    ↓
-Application Build
-    ↓
-Container Image
+```mermaid
+flowchart LR
+    S["Source Code"] --> B["Application Build"]
+    B --> I["Container Image"]
+    I --> E["ECR"]
 ```
 
 생성된 Image를 EKS의 Pod에 직접 복사하지는 않는다.
 
 Image는 ECR과 같은 Container Registry에 Push된다.
-
-```text
-Jenkins
-   │
-   │ docker push
-   ▼
-ECR
-```
 
 예를 들어 배포마다 다음과 같은 Image가 만들어질 수 있다.
 
@@ -212,44 +178,26 @@ Artifact가 준비되면 다음으로 Kubernetes가 새로운 Image를 사용하
 
 여기서 처음 가졌던 의문으로 돌아온다.
 
-```text
-EC2
-└── Jenkins
-
-       ↓ ?
-
-EKS Cluster
-└── Deployment
-```
-
 Jenkins가 EKS 외부에 있는데도 Deployment를 변경할 수 있는 이유는 Kubernetes가 **API를 통해 클러스터 상태를 관리하기 때문**이다.
 
 `kubectl`과 `Helm` 역시 Kubernetes API를 사용하는 Client다.
 
-```text
-Jenkins
-   │
-   │ Helm / kubectl
-   ▼
-EKS API Endpoint
-   │
-   ▼
-Kubernetes API Server
-   │
-   ▼
-Deployment
+```mermaid
+flowchart LR
+    subgraph EC2["Jenkins EC2"]
+        J["Jenkins"] --> K["Helm / kubectl"]
+    end
+
+    K --> API["EKS API Endpoint<br/>Kubernetes API Server"]
+
+    subgraph EKS["EKS Cluster"]
+        API --> D["Deployment"]
+    end
 ```
 
 따라서 Jenkins와 EKS가 같은 서버에 있을 필요는 없다.
 
-중요한 것은 Jenkins가 실행되는 환경에서 다음 조건을 만족하는가이다.
-
-```text
-Jenkins
- ├── EKS API Endpoint에 접근 가능
- ├── Kubernetes 인증 가능
- └── Deployment를 변경할 권한 보유
-```
+중요한 것은 Jenkins가 실행되는 환경에서 **EKS API Endpoint에 접근할 수 있고, Kubernetes 인증을 거쳐 Deployment를 변경할 권한이 있는지**다.
 
 AWS 환경에서는 IAM을 이용한 인증과 Kubernetes 측의 권한 설정 등이 함께 관여할 수 있다.
 
@@ -279,18 +227,6 @@ image: my-service:v1
 After
 
 image: my-service:v2
-```
-
-이 요청은 Kubernetes API를 통해 전달된다.
-
-```text
-Jenkins
-   ↓
-Helm / kubectl
-   ↓
-Kubernetes API
-   ↓
-Deployment Spec 변경
 ```
 
 여기서 중요한 점은 Jenkins가 새로운 Pod를 직접 생성하는 것이 아니라는 것이다.
@@ -331,27 +267,19 @@ Kubernetes Controller는 선언된 상태와 현재 상태를 지속적으로 �
 
 이 과정을 **Reconciliation**이라고 한다.
 
+```mermaid
+flowchart LR
+    D["Deployment<br/>Desired State: v2"] --> C["Deployment Controller"]
+    A["Actual State<br/>Pod: v1"] --> C
+
+    C --> R["New ReplicaSet"]
+    R --> P["New Pod: v2"]
+    E["ECR<br/>my-service:v2"] -. "Image Pull" .-> P
+```
+
 Deployment의 Pod Template이 변경되면 새로운 ReplicaSet이 만들어지고, 그 ReplicaSet을 통해 새로운 Pod가 생성된다.
 
-```text
-Deployment
-    ↓
-New ReplicaSet
-    ↓
-New Pod
-```
-
 새로운 Pod는 자신의 Spec에 정의된 Image를 ECR에서 Pull하여 Container를 실행한다.
-
-```text
-New Pod
-   ↓
-ECR
-   ↓
-my-service:v2 Pull
-   ↓
-Container 실행
-```
 
 이 지점에서 Jenkins와 Kubernetes의 책임이 명확하게 나뉜다.
 
@@ -371,7 +299,7 @@ Kubernetes
 
 Desired State를 기준으로 배포 과정을 바라보면 Kubernetes의 배포 방식도 이해하기 쉬워진다.
 
-전통적인 서버 배포에서는 다음과 같이 기존 서버에 새로운 실행 파일을 올리고 프로세스를 재시작할 수 있다.
+전통적인 서버 배포에서는 기존 서버에 새로운 JAR이나 실행 파일을 올리고 프로세스를 재시작하는 방식을 사용할 수 있다.
 
 ```text
 Server
@@ -435,14 +363,11 @@ helm upgrade ...
 
 하지만 Kubernetes에서는 그 이후에도 실제 상태를 변경하는 작업이 이어진다.
 
-```text
-Deployment 변경
-        ↓
-New ReplicaSet
-        ↓
-New Pod
-        ↓
-Container 실행
+```mermaid
+flowchart LR
+    D["Deployment 변경"] --> R["New ReplicaSet"]
+    R --> P["New Pod"]
+    P --> C["Container 실행"]
 ```
 
 따라서 **배포 요청이 반영된 시점과 새로운 버전의 Rollout이 완료된 시점은 구분할 필요가 있다.**
@@ -477,23 +402,23 @@ Pod
 
 ```mermaid
 flowchart TD
-    A["Git Repository"] --> B["Jenkins"]
+    G["Git Repository"] --> J["Jenkins"]
 
-    B --> C["Application Build"]
-    C --> D["Container Image Build"]
-    D --> E["ECR"]
+    J --> B["Application Build"]
+    B --> I["Container Image Build"]
+    I --> E["ECR"]
 
-    B --> F["Helm / kubectl"]
-    F --> G["Kubernetes API"]
-    G --> H["Deployment Desired State 변경"]
+    J --> H["Helm / kubectl"]
+    H --> API["Kubernetes API"]
+    API --> D["Deployment<br/>Desired State 변경"]
 
-    H --> I["New ReplicaSet"]
-    I --> J["New Pod"]
-    J --> K["ECR에서 Image Pull"]
-    K --> L["Container 실행"]
+    D --> R["New ReplicaSet"]
+    R --> P["New Pod"]
+    E -. "Image Pull" .-> P
+    P --> C["Container 실행"]
 ```
 
-각 구성요소의 책임도 명확하게 구분할 수 있다.
+각 구성요소의 책임을 나누어 보면 전체 배포 과정이 더 명확해진다.
 
 ```text
 Jenkins
@@ -532,42 +457,31 @@ Jenkins 화면에서는 하나의 Pipeline으로 보이지만 내부에서는 **
 
 먼저 실행할 Artifact가 만들어진다.
 
-```text
-Source Code
-    ↓
-Jenkins
-    ↓
-Container Image
-    ↓
-ECR
+```mermaid
+flowchart LR
+    S["Source Code"] --> J["Jenkins"]
+    J --> I["Container Image"]
+    I --> E["ECR"]
 ```
 
 그리고 Kubernetes가 어떤 Artifact를 실행해야 하는지가 변경된다.
 
-```text
-Jenkins
-    ↓
-Kubernetes API
-    ↓
-Deployment
-    ↓
-Desired State 변경
+```mermaid
+flowchart LR
+    J["Jenkins"] --> API["Kubernetes API"]
+    API --> D["Deployment"]
+    D --> S["Desired State 변경"]
 ```
 
 그 이후 실제 실행 상태를 만드는 것은 Kubernetes다.
 
-```text
-Desired State 변경
-        ↓
-Reconciliation
-        ↓
-ReplicaSet
-        ↓
-Pod
-        ↓
-Image Pull
-        ↓
-Application 실행
+```mermaid
+flowchart LR
+    D["Desired State 변경"] --> R["Reconciliation"]
+    R --> RS["ReplicaSet"]
+    RS --> P["Pod"]
+    P --> I["Image Pull"]
+    I --> A["Application 실행"]
 ```
 
 결국 Kubernetes 환경에서의 배포는 **애플리케이션 파일을 특정 서버로 전달하는 작업이라기보다, 실행할 Artifact를 준비하고 클러스터가 유지해야 할 상태를 새로운 버전으로 변경하는 과정**에 가깝다.
