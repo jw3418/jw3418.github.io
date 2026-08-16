@@ -7,6 +7,61 @@ categories: [Spring & Java]
 
 # Spring Cloud OpenFeign 동작 이해하기
 
+MSA 기반의 Spring Boot 서비스를 개발하면서 다른 서비스의 API를 호출하기 위해 FeignClient를 사용할 일이 있었다.
+
+코드 자체는 단순했다.
+
+```java
+@FeignClient(
+    name = "customer-api",
+    url = "${feign.customer-api.url}"
+)
+public interface CustomerClient {
+
+    @GetMapping("/customers/{customerId}")
+    CustomerRes getCustomer(
+        @PathVariable String customerId
+    );
+}
+```
+
+Service에서는 이 인터페이스를 주입받아 일반적인 Java 메서드처럼 호출한다.
+
+```java
+CustomerRes customer =
+    customerClient.getCustomer(customerId);
+```
+
+처음에는 사용법만 익혀서 사용했지만, 코드를 보다 보니 한 가지가 잘 이해되지 않았다.
+
+`CustomerClient`에는 메서드 선언만 있고 실제 구현체가 보이지 않는다.
+
+그런데 이 메서드를 호출하면 다른 애플리케이션으로 HTTP 요청이 전달되고, 응답은 다시 Java 객체로 반환된다.
+
+```text
+OrderService
+     ↓
+CustomerClient
+     ↓
+     ?
+     ↓
+customer-service
+```
+
+특히 같은 Spring Container의 Bean을 호출하는 것도 아닌데 코드에서는 일반적인 메서드 호출과 거의 동일하게 보인다는 점이 흥미로웠다.
+
+이 구조를 따라가 보니 FeignClient의 핵심은 단순히 HTTP 호출 코드를 줄여주는 데 있지 않았다.
+
+**실제로는 네트워크를 통해 이루어지는 서비스 간 HTTP 통신을 Java 인터페이스와 메서드 호출의 형태로 추상화하고 있었다.**
+
+그리고 이 추상화 뒤에 실제 네트워크 통신이 존재한다는 것을 이해하고 나니 Timeout, Retry, 멱등성, 장애 전파 같은 문제를 왜 함께 고려해야 하는지도 자연스럽게 연결됐다.
+
+이 글에서는 FeignClient의 메서드 호출이 실제 HTTP 요청으로 변환되는 과정을 따라가고, 그 과정에서 서비스 간 통신을 어떻게 바라봐야 하는지 정리해본다.
+
+---
+
+## @FeignClient
+
 MSA에서는 하나의 애플리케이션 안에서 모든 기능을 처리하지 않고 여러 서비스가 각자의 역할을 담당한다.
 
 예를 들어 주문 서비스에서 고객 정보가 필요하다고 해보자.
@@ -31,10 +86,6 @@ customerService.getCustomer(customerId);
 
 Spring Cloud OpenFeign은 이러한 **서비스 간 HTTP 호출을 Java 인터페이스 형태로 작성할 수 있게 해주는 도구**다.
 
----
-
-## @FeignClient
-
 FeignClient는 다음과 같이 인터페이스로 정의할 수 있다.
 
 ```java
@@ -51,13 +102,13 @@ public interface CustomerClient {
 }
 ```
 
-그러나 인터페이스만 있고 구현체는 보이지 않는다.
+그런데 여기서 처음 가졌던 의문으로 다시 돌아가면, 여전히 실제 구현체는 보이지 않는다.
 
 ```java
 CustomerRes getCustomer(String customerId);
 ```
 
-메서드 선언만 있고 실제 구현 코드가 없으나, Service에서는 해당 인터페이스를 주입받아 사용할 수 있다.
+메서드 선언만 존재하는데 Service에서는 해당 인터페이스를 주입받아 정상적으로 사용할 수 있다.
 
 ```java
 @Service
@@ -76,7 +127,9 @@ public class OrderService {
 }
 ```
 
-구현체가 없는데 어떻게 메서드가 실행되는 걸까?
+그렇다면 **구현체가 보이지 않는 이 인터페이스의 메서드 호출은 어떻게 실제 HTTP 요청으로 이어지는 것일까?**
+
+이를 이해하려면 FeignClient가 생성되는 방식을 먼저 볼 필요가 있다.
 
 ---
 
