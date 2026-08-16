@@ -679,4 +679,4 @@ Central Log Platform
 
 이 차이를 이해하고 나니 Kubernetes 환경에서 로그를 확인할 때도 단순히 "어느 화면에서 검색할까?"보다 먼저 **지금 보고 있는 로그의 원본은 어디에 있고, 이 도구는 그 로그를 직접 조회하는지 아니면 별도로 수집한 데이터를 보여주는지**를 생각하게 됐다.
 
-결국 Kubernetes의 로그 역시 하나의 기능으로만 볼 때보다, **Application → Container → Kubernetes → Log Consumer**로 이어지는 흐름을 따라가 보면 각 도구의 역할이 훨씬 명확해진다.
+결국 Kubernetes의 로그 역시 하나의 기능으로만 볼 때보다, **Application → Container → Kubernetes → Log Consumer**로 이어지는 흐름을 따라가 보면 각 도구의 역할이 훨씬 명확해지는 것 같다.
