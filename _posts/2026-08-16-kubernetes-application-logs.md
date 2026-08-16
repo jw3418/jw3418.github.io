@@ -21,7 +21,7 @@ kubectl logs <pod-name> -n <namespace>
 
 그런데 구조를 생각해보니 한 가지 의문이 생겼다.
 
-애플리케이션은 EKS의 Pod에서 실행되고 있는데 Jenkins는 별도의 EC2 Instance에서 실행될 수 있다.
+애플리케이션은 EKS의 Pod에서 실행되고 있는데 Jenkins는 별도의 EC2 Instance에서 실행된다.
 
 ```text
 EC2
@@ -204,11 +204,11 @@ flowchart LR
 
 ---
 
-## 그렇다면 Jenkins에서는 어떻게 Pod 로그를 볼 수 있을까?
+## 그렇다면 EKS 밖의 Jenkins는 어떻게 Pod 로그를 볼까?
 
 여기서 처음 가졌던 의문으로 돌아가 보자.
 
-Jenkins는 별도의 EC2 Instance에서 실행되고 있을 수 있다.
+Jenkins는 별도의 EC2 Instance에서 실행되고 있다.
 
 ```mermaid
 flowchart LR
@@ -330,7 +330,7 @@ flowchart LR
 
 ---
 
-## 그런데 Pod는 계속 존재하지 않는다
+## Pod 로그만으로는 충분하지 않은 이유
 
 여기까지 보면 Jenkins나 `kubectl logs`만 있어도 충분해 보일 수 있다.
 
@@ -379,7 +379,7 @@ flowchart LR
 
 ---
 
-## 그래서 로그를 중앙으로 수집한다
+## 로그를 중앙으로 수집하는 이유
 
 운영 환경에서는 각 Container에서 발생하는 로그를 별도의 중앙 로그 플랫폼으로 지속적으로 전달할 수 있다.
 
@@ -471,7 +471,7 @@ flowchart LR
 
 ---
 
-## 중앙으로 모은 로그는 어떻게 하나의 서비스처럼 보일까?
+## 분산된 Pod 로그를 서비스 단위로 묶는 방법
 
 로그를 중앙으로 수집했다고 해서 자동으로 하나의 서비스 로그가 되는 것은 아니다.
 
