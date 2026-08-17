@@ -23,7 +23,7 @@ Application → Redis (Cache Hit → 바로 반환) / Cache Miss → DB
 
 ## MSA에서는 요청을 어디로 보내야 할까
 
-하나의 애플리케이션으로 구성된 서비스라라면 요청을 처리할 서버를 정하는 과정이 단순하겠지만, 서비스가 여러 애플리케이션으로 분리된 MSA에서는 이야기가 달라진다.
+하나의 애플리케이션으로 구성된 서비스라면 요청을 처리할 서버를 정하는 과정이 단순하겠지만, 서비스가 여러 애플리케이션으로 분리된 MSA에서는 이야기가 달라진다.
 
 ```mermaid
 flowchart LR
@@ -134,7 +134,9 @@ flowchart TB
     Gateway -->|Metadata Lookup| Redis
 ```
 
-`Metadata Loader`는 **설정을 `Redis`에 반영하는 역할**을 담당하고, `API Gateway`는 **현재 반영된 설정을 이용해 요청을 처리하는 역할**에 집중한다. 이 구조에서는 `Back Office`에서 메타데이터를 변경하고 이를 `Redis`에 반영하는 것만으로 `Gateway`의 동작을 변경할 수 있기 때문에, 라우팅이나 API 설정 변경을 위해 `Gateway` 애플리케이션을 다시 배포할 필요가 없다. 즉, **설정 변경과 애플리케이션 배포가 분리되고**, `Metadata Loader`는 이러한 설정 변경을 실제 요청 처리 경로에 반영하는 책임을 `Gateway`로부터 분리한다.
+`Metadata Loader`는 설정을 Redis에 반영하는 역할을 담당하고, `API Gateway`는 현재 반영된 설정을 이용해 요청을 처리하는 역할에 집중한다. 해당 구조에서는 **Back Office에서 메타데이터를 변경하고 이를 Redis에 반영하는 것만으로 Gateway의 동작을 변경할 수 있다.** 라우팅이나 API 설정을 변경하기 위해 Gateway 애플리케이션 자체를 다시 배포할 필요가 없어진다는 것이다.
+
+즉, **설정 변경과 애플리케이션 배포가 분리되고**, `Metadata Loader`는 이러한 설정 변경을 실제 요청 처리 경로에 반영하는 책임을 Gateway로부터 분리한다.
 
 ---
 
