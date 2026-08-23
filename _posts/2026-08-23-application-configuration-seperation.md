@@ -73,10 +73,9 @@ Application Artifact
 
 즉 Spring Profile은 **어떤 Configuration을 사용할지 선택하는 문제**를 해결하지만, 그 Configuration의 변경과 배포까지 Application과 분리해주는 것은 아니다.
 
-```text
-Profile 분리 → Configuration 선택 분리
-Configuration Externalization → Configuration Lifecycle 분리
-```
+> Profile 분리 → Configuration 선택 분리
+
+> Configuration Externalization → Configuration Lifecycle 분리
 
 즉 **설정의 선택을 분리하는 것과 설정의 Lifecycle을 분리하는 것은 서로 다른 문제**인 것이다.
 
@@ -142,10 +141,9 @@ image:v1.4.2 + PRD Config → PRD
 
 Container Image는 동일하게 유지하면서 어떤 Configuration을 주입하는지에 따라 서로 다른 환경에서 동작하게 된다.
 
-```text
-Artifact → 어떤 Version을 실행할 것인가
-Configuration → 해당 Version을 현재 환경에서 어떻게 실행할 것인가
-```
+> Artifact → 어떤 Version을 실행할 것인가
+
+> Configuration → 해당 Version을 현재 환경에서 어떻게 실행할 것인가
 
 이렇게 Configuration을 외부화하면 설정이 변경될 때마다 Application을 다시 Build해야 하는 상황을 줄일 수 있다.
 
@@ -180,10 +178,9 @@ Credential
 
 Kubernetes에서는 일반적인 Configuration과 민감한 값을 별도의 리소스로 구분할 수 있다.
 
-```text
-ConfigMap → 일반적인 Configuration
-Secret → 민감한 Configuration
-```
+> ConfigMap → 일반적인 Configuration
+
+> Secret → 민감한 Configuration
 
 다만 Kubernetes Secret을 사용한다고 값 자체가 자동으로 안전하게 암호화되는 것은 아니다. Secret의 값은 기본적으로 base64 형태로 표현되며, 실제 보안 수준은 저장 시 암호화나 RBAC과 같은 접근 제어를 어떻게 구성하는지에 따라 달라진다.
 
@@ -240,4 +237,4 @@ flowchart TB
 
 결국 핵심은 환경별 설정 파일을 몇 개로 나누는지가 아니라, **Application과 Configuration의 변경 및 배포 Lifecycle을 어디까지 분리할 것인가**에 있다.
 
-Application은 서비스의 기능과 Version을 담고, Configuration은 해당 Application이 특정 환경에서 어떻게 동작할지를 결정한다. 두 대상을 분리해서 관리하면 동일한 Artifact를 여러 환경에서 재사용하면서도 환경별 설정을 독립적으로 변경하고 관리할 수 있다.
+Application은 서비스의 기능과 Version을 담고, Configuration은 해당 Application이 특정 환경에서 어떻게 동작할지를 결정한다. 두 대상을 분리해서 관리하면 동일한 Artifact를 여러 환경에서 재사용하면서도 환경별 설정을 독립적으로 변경하고 관리할 수 있게 된다.
