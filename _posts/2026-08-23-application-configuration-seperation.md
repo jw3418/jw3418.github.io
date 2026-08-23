@@ -241,4 +241,4 @@ flowchart TB
 
 결국 핵심은 환경별 Configuration을 구분하는 것 자체가 아니라, **Application과 Configuration의 변경 및 배포 Lifecycle을 어디까지 분리할 것인가**에 있다.
 
-Application은 서비스의 기능과 Version을 담고, Configuration은 해당 Application이 특정 환경에서 어떻게 동작할지를 결정한다. 두 대상을 분리해서 관리하면 동일한 Artifact를 여러 환경에서 재사용하면서도 환경별 설정을 독립적으로 변경하고 관리할 수 있게 된다.
+Application은 서비스의 기능과 Version을 담고, Configuration은 해당 Application이 특정 환경에서 어떻게 동작할지를 결정한다. 두 대상을 분리하면 동일한 Artifact를 여러 환경에서 재사용할 수 있고, Configuration 변경을 Application의 Build 및 Deployment Lifecycle과 독립적으로 관리할 수 있게 된다.
