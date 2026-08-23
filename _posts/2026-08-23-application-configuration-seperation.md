@@ -9,7 +9,7 @@ categories: [CI/CD]
 
 같은 Application이라도 실행되는 환경에 따라 필요한 설정은 달라진다.
 
-DEV에서는 개발용 DB를 사용하고, STG와 PRD에서는 각각 다른 DB 또는 외부 API Endpoint를 바라볼 수 있다. Spring에서는 일반적으로 이러한 차이를 Profile별 설정으로 나누어 관리한다.
+실제로 Spring 기반 서비스를 다루면서 DEV, STG, PRD 환경마다 DB 주소나 외부 API Endpoint가 달라지는 경우를 자주 접했고, 이러한 값들은 Profile별 설정 파일로 구분해서 사용했다.
 
 ```text
 application-dev.yml
@@ -17,11 +17,15 @@ application-stg.yml
 application-prod.yml
 ````
 
-Spring Profile을 이용하면 환경별 설정을 구분해서 사용할 수 있다. 다만 **Profile별 설정을 구분하는 것과 Configuration 자체를 Application으로부터 분리하는 것은 다른 문제**이다.
+실행할 Profile을 지정하면 해당 환경의 설정을 적용할 수 있기 때문에, 처음에는 환경별 설정을 관리하는 방법 자체에는 큰 의문이 없었다.
 
-예를 들어 동일한 Container Image를 DEV, STG, PRD에 배포한다고 했을 때, 환경별 설정 파일을 Image 안에 모두 포함하고 Profile만 선택할 수도 있고, Configuration을 Artifact 밖에서 별도로 관리할 수도 있다.
+그런데 Docker와 Kubernetes 기반의 배포 구조를 조금 더 살펴보면서 다른 지점이 궁금해졌다. 동일한 Container Image를 여러 환경에 배포할 수 있다면, 환경별 Configuration은 어디까지 Image에 포함되어야 할까?
 
-두 방식의 차이는 결국 **Configuration의 변경과 배포를 Application과 함께 관리할 것인지, 별도의 Lifecycle로 관리할 것인지**에 있다. 이 글에서는 이러한 차이를 배포 구조 관점에서 조금 더 상세히 정리해보고자 한다.
+환경별 설정 파일을 Image 안에 모두 넣고 Profile만 다르게 지정하는 방식도 가능하지만, 이 경우 Configuration 역시 Application과 함께 빌드되고 배포된다. 반대로 Configuration을 Artifact 밖에서 관리한다면 Application Code의 변경과 환경 설정의 변경을 서로 다른 흐름으로 관리할 수 있다.
+
+여기서 **환경별 설정을 구분하는 것과 Configuration 자체의 변경 및 배포 Lifecycle을 Application으로부터 분리하는 것은 서로 다른 문제**라는 점을 구분해서 볼 필요가 있었다.
+
+이 글에서는 이러한 관점에서 **Spring Profile**과 **Configuration Externalization**이 각각 어떤 역할을 하는지, 그리고 **Application**과 **Configuration**을 분리해서 관리하는 이유를 배포 구조와 함께 정리해보고자 한다.
 
 ---
 
