@@ -9,7 +9,7 @@ categories: [CI/CD]
 
 같은 Application이라도 실행되는 환경에 따라 필요한 설정은 달라진다.
 
-DEV에서는 개발용 DB를 사용하고, STG와 PRD에서는 각각 다른 DB와 외부 API Endpoint를 바라볼 수 있다. Spring에서는 일반적으로 이런 차이를 Profile별 설정으로 나누어 관리할 수 있다.
+DEV에서는 개발용 DB를 사용하고, STG와 PRD에서는 각각 다른 DB 또는 외부 API Endpoint를 바라볼 수 있다. Spring에서는 일반적으로 이러한 차이를 Profile별 설정으로 나누어 관리한다.
 
 ```text
 application-dev.yml
@@ -17,11 +17,11 @@ application-stg.yml
 application-prod.yml
 ````
 
-이렇게 환경별 설정 파일을 나누는 것 자체가 Application과 Configuration을 분리하는 방법이라고 생각할 수 있지만, Docker와 Kubernetes 기반의 배포 구조를 살펴보다 보니, **설정을 구분해서 사용하는 것과 Configuration 자체를 Application으로부터 분리하는 것은 다른 문제**라는 생각이 들었다.
+이렇게 환경별 설정 파일을 나누는 것 자체가 Application과 Configuration을 분리하는 방법이라고 생각할 수 있지만, Docker와 Kubernetes 기반의 배포 구조를 살펴보다 보니, **단순히 Profile별 설정을 구분하는 것과 Configuration 자체를 Application으로부터 분리하는 것은 다른 문제**라는 생각이 들었다.
 
 예를 들어 동일한 Container Image를 DEV, STG, PRD에 배포하는 경우, Image 안에 모든 환경의 설정 파일을 포함한 뒤 Profile만 선택해서 실행하면 되는 것인지, 아니면 Configuration 자체를 Artifact 밖에서 별도로 관리해야 하는 것인지 궁금해졌다.
 
-결국 여기서 구분해야 할 것은 단순히 **어떤 설정을 사용할 것인가**와 **Configuration을 Application과 어떤 Lifecycle로 관리할 것인가**였다.
+Application과 Configuration을 분리한다는 것은 단순히 **어떤 설정을 사용할 것인가**를 나누는 것이 아니라, **Configuration의 변경과 배포를 Application과 독립적으로 관리하는 것**에 가깝다고 볼 수 있었고, 이 글에서는 이러한 차이를 배포 구조 관점에서 조금 더 상세히 정리해보고자 한다.
 
 ---
 
@@ -52,7 +52,7 @@ flowchart LR
     App --> Prd["PRD Profile"]
 ```
 
-이 관점에서 Profile은 **환경별 Configuration을 선택하는 문제**를 해결한다. 하지만 설정을 선택하는 것과 Configuration의 Lifecycle을 Application으로부터 분리하는 것은 같은 의미가 아니다.
+이 관점에서 Profile은 **환경별 Configuration을 선택하는 문제**를 해결한다. 하지만 단순히 환경별 설정 파일을 나누는 것과 Configuration의 Lifecycle을 Application으로부터 분리하는 것은 다른 의미이다.
 
 ---
 
@@ -69,13 +69,12 @@ Application Artifact
 
 어떤 Profile을 사용할지는 외부에서 선택할 수 있지만, **Configuration 자체는 여전히 Application과 함께 빌드되고 배포된다.**
 
-예를 들어 DEV에서 사용하는 외부 API Endpoint 하나가 변경되었다고 해보자. 설정 파일이 Artifact 안에 포함되어 있다면 Application Code에는 변화가 없더라도 새로운 Artifact나 Container Image를 만들어야 할 수 있다.
+예를 들어 DEV에서 사용하는 외부 API Endpoint 하나가 변경될 경우, 설정 파일이 Artifact 안에 포함되어 있다면 Application Code에는 변화가 없더라도 새로운 Artifact나 Container Image를 만들어야 할 수 있다.
 
 즉 Spring Profile은 **어떤 Configuration을 사용할지 선택하는 문제**를 해결하지만, 그 Configuration이 언제 빌드되고 언제 배포되는지까지 Application과 분리해주는 것은 아니다.
 
 ```text
 Profile 분리 → Configuration 선택 분리
-
 Configuration Externalization → Configuration Lifecycle 분리
 ```
 
@@ -145,11 +144,10 @@ Container Image는 동일하게 유지하면서 어떤 Configuration을 주입�
 
 ```text
 Artifact → 어떤 Version을 실행할 것인가
-
 Configuration → 해당 Version을 현재 환경에서 어떻게 실행할 것인가
 ```
 
-이렇게 Configuration을 외부화하면 설정이 변경되었다는 이유만으로 Application을 다시 Build해야 하는 결합을 줄일 수 있다.
+이렇게 Configuration을 외부화하면 설정이 변경될 때마다 Application을 다시 Build해야 하는 상황을 줄일 수 있다.
 
 ```mermaid
 flowchart LR
@@ -216,11 +214,8 @@ flowchart LR
 
 ```text
 Application → 무엇을 실행할 것인가
-
 Artifact → 어떤 Version을 실행할 것인가
-
 Configuration → 현재 환경에서 어떻게 실행할 것인가
-
 Environment → 어디에서 실행할 것인가
 ```
 
@@ -234,9 +229,7 @@ Environment → 어디에서 실행할 것인가
 
 하지만 배포 구조까지 함께 살펴보니 **Configuration을 구분하는 것과 Configuration의 Lifecycle을 분리하는 것은 다른 문제**였다.
 
-Spring Profile은 실행 환경에 따라 어떤 Configuration을 사용할지 선택하는 방법이다.
-
-반면 Configuration Externalization은 설정의 관리와 변경을 Application Artifact의 Build 및 Deployment Lifecycle로부터 분리하는 것에 가깝다.
+Spring Profile은 실행 환경에 따라 어떤 Configuration을 사용할지 선택하는 방법이다. 반면 Configuration Externalization은 설정의 관리와 변경을 Application Artifact의 Build 및 Deployment Lifecycle로부터 분리하는 것에 가깝다.
 
 ```mermaid
 flowchart TB
