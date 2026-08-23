@@ -52,7 +52,7 @@ flowchart LR
     App --> Prd["PRD Profile"]
 ```
 
-이 관점에서 Profile은 **환경별 Configuration을 선택하는 문제**를 해결한다. 하지만 설정을 선택하는 것과 Configuration의 Lifecycle을 Application으로부터 분리하는 것은 같은 의미가 아니다.
+이 관점에서 Profile은 **환경별 Configuration을 선택하는 문제**를 해결한다. 하지만 설정을 선택하는 것과 Configuration의 Lifecycle을 Application으로부터 분리하는 것은 의미가 다르다.
 
 ---
 
@@ -78,7 +78,7 @@ Profile 분리 → Configuration 선택 분리
 Configuration Externalization → Configuration Lifecycle 분리
 ```
 
-즉 **설정의 선택을 분리하는 것과 설정의 Lifecycle을 분리하는 것은 서로 다른 문제**다.
+즉 **설정의 선택을 분리하는 것과 설정의 Lifecycle을 분리하는 것은 서로 다른 문제**인 것이다.
 
 ---
 
@@ -117,7 +117,7 @@ flowchart LR
     Artifact --> Deploy["Deploy"]
 ```
 
-Application과 Configuration은 변경 이유와 주기가 다르지만, 하나의 Artifact에 함께 포함하면 두 변경이 같은 Build와 Deployment Lifecycle을 타게 된다.
+Application과 Configuration은 변경 이유와 주기가 다르지만, 하나의 Artifact에 함께 포함하면 두 변경이 같은 Build와 Deployment Lifecycle을 타게 되는 것이다.
 
 ---
 
@@ -167,7 +167,7 @@ flowchart LR
 
 Configuration을 Application 밖으로 분리하더라도 모든 값을 같은 방식으로 관리할 수 있는 것은 아니다.
 
-예를 들어 다음과 같은 값은 일반적인 설정과 성격이 다르다.
+예를 들어 아래와 같은 값은 일반적인 설정과 성격이 다르다.
 
 ```text
 DB Password
@@ -182,7 +182,6 @@ Kubernetes에서는 일반적인 Configuration과 민감한 값을 별도의 리
 
 ```text
 ConfigMap → 일반적인 Configuration
-
 Secret → 민감한 Configuration
 ```
 
