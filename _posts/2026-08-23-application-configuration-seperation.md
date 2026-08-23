@@ -71,16 +71,6 @@ Application Artifact
 
 예를 들어 DEV에서 사용하는 외부 API Endpoint 하나가 변경되었다고 해보자. 설정 파일이 Artifact 안에 포함되어 있다면 Application Code에는 변화가 없더라도 새로운 Artifact나 Container Image를 만들어야 할 수 있다.
 
-```text
-Configuration 변경
-        ↓
-Build
-        ↓
-New Artifact
-        ↓
-Deploy
-```
-
 즉 Spring Profile은 **어떤 Configuration을 사용할지 선택하는 문제**를 해결하지만, 그 Configuration이 언제 빌드되고 언제 배포되는지까지 Application과 분리해주는 것은 아니다.
 
 ```text
@@ -193,11 +183,9 @@ Credential
 Kubernetes에서는 일반적인 Configuration과 민감한 값을 별도의 리소스로 구분할 수 있다.
 
 ```text
-ConfigMap
-→ 일반적인 Configuration
+ConfigMap → 일반적인 Configuration
 
-Secret
-→ 민감한 Configuration
+Secret → 민감한 Configuration
 ```
 
 다만 Kubernetes Secret을 사용한다고 값 자체가 자동으로 안전하게 암호화되는 것은 아니다. Secret의 값은 기본적으로 base64 형태로 표현되며, 실제 보안 수준은 저장 시 암호화나 RBAC과 같은 접근 제어를 어떻게 구성하는지에 따라 달라진다.
@@ -250,21 +238,14 @@ Spring Profile은 실행 환경에 따라 어떤 Configuration을 사용할지 �
 
 반면 Configuration Externalization은 설정의 관리와 변경을 Application Artifact의 Build 및 Deployment Lifecycle로부터 분리하는 것에 가깝다.
 
-```text
-Application
-        ↓
-      Build
-        ↓
-     Artifact
+```mermaid
+flowchart TB
+    Application["Application"] --> Build["Build"]
+    Build --> Artifact["Artifact"]
 
-        +
-
-Configuration
-        ↓
-Environment
-
-        ↓
-Running Application
+    Artifact --> Running["Running Application"]
+    Configuration["Configuration"] --> Environment["Environment"]
+    Environment --> Running
 ```
 
 결국 중요한 것은 환경별 설정 파일을 몇 개로 나누었는지가 아니었다. **Application과 Configuration은 서로 다른 이유와 주기로 변경되기 때문에, 두 대상을 반드시 같은 Build와 Deployment Lifecycle에 묶어둘 필요가 있는지를 구분해서 생각해야 한다.**
