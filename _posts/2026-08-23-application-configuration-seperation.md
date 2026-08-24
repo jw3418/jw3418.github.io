@@ -231,7 +231,7 @@ Configuration → 현재 환경에서 어떻게 실행할 것인가
 Environment → 어디에서 실행할 것인가
 ```
 
-이렇게 각 역할을 분리하면 **Application Version과 환경별 Configuration을 별도로 관리할 수 있고, 하나의 Artifact를 여러 환경에서 재사용하는 구조 가능**해진다.
+이렇게 각 역할을 분리하면 **Application Version과 환경별 Configuration을 별도로 관리할 수 있고, 하나의 Artifact를 여러 환경에서 재사용하는 구조가 가능**해진다.
 
 ---
 
