@@ -23,18 +23,13 @@ application-prod.yml
 
 이후 Docker와 Kubernetes 기반의 배포 방식을 살펴보면서, 한 번 빌드한 Artifact를 DEV에서 검증한 뒤 STG, PRD로 순차적으로 승격시키는 Artifact Promotion 구조를 접하게 되었다.
 
-```text
-Source Code
-    ↓
-Build
-    ↓
-Artifact
-    ↓
-DEV
-    ↓
-STG
-    ↓
-PRD
+```mermaid
+flowchart LR
+    Source["Source Code"] --> Build["Build"]
+    Build --> Artifact["Artifact"]
+    Artifact --> Dev["DEV"]
+    Dev -->|"Promote"| Stg["STG"]
+    Stg -->|"Promote"| Prd["PRD"]
 ```
 
 해당 구조에서는 동일한 Container Image가 여러 환경에서 실행될 수 있다. 이 경우 환경마다 달라지는 Configuration을 **Artifact에 포함**할지, **Application과 분리해 별도로 관리할지**가 중요한 지점이 된다.
@@ -167,8 +162,11 @@ Container Image는 동일하게 유지하면서 어떤 Configuration을 주입�
 
 ```mermaid
 flowchart LR
-    Config["Configuration 변경"] --> Update["Config 변경"]
-    Update --> Apply["실행 환경에 반영"]
+    Config["Configuration 변경"]
+    Config --> Apply["환경별 설정 반영"]
+    Apply --> App["Application 실행"]
+
+    Artifact["기존 Artifact"] --> App
 ```
 
 물론 Configuration을 변경한다고 항상 실행 중인 Application에 즉시 반영되는 것은 아니다.
