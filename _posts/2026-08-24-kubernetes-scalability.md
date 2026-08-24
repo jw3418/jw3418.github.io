@@ -79,11 +79,11 @@ Pod #1 / Pod #2 / Pod #3
 
 ---
 
-# 트래픽 증가에 대응하는 두 가지 확장 방식
+## 트래픽 증가에 대응하는 두 가지 확장 방식
 
 두 방식 모두 처리 용량을 늘리기 위한 방법이지만 고려해야 하는 문제는 다르다.
 
-## Scale Up: 하나의 인스턴스를 더 크게
+### Scale Up: 하나의 인스턴스를 더 크게
 
 Scale Up은 하나의 Pod 또는 서버가 사용할 수 있는 CPU와 Memory를 늘리는 방식이다.
 
@@ -110,7 +110,7 @@ Pod가 지나치게 커질수록 배치 가능한 Node가 제한되고, 하나�
 
 ---
 
-## Scale Out: 애플리케이션 인스턴스를 더 많이
+### Scale Out: 애플리케이션 인스턴스를 더 많이
 
 Scale Out은 동일한 애플리케이션 Instance 수를 늘리는 방식이다. Kubernetes에서는 Replica 증가로 표현할 수 있다.
 
@@ -147,7 +147,7 @@ flowchart LR
 
 ---
 
-# Pod는 결국 Worker Node의 Resource를 사용한다
+## Pod는 결국 Worker Node의 Resource를 사용한다
 
 Pod는 독립적인 서버가 아니기 때문에 새로운 Pod가 생성되면 이를 실행할 Worker Node가 필요하다.
 
@@ -199,7 +199,7 @@ Karpenter나 Cluster Autoscaler 같은 Node Autoscaler는 Pod를 배치할 Capac
 
 ---
 
-# Pod를 늘려도 시스템 전체가 확장되는 것은 아니다
+## Pod를 늘려도 시스템 전체가 확장되는 것은 아니다
 
 여기까지는 Kubernetes가 담당하는 영역이다. 하지만 백엔드 엔지니어 입장에서 더 중요한 부분은 **Pod가 늘어난 이후**이다.
 
@@ -245,7 +245,7 @@ Pod가 증가하면 Redis Connection, 외부 API 호출량, Message Broker 부�
 
 ---
 
-# 애플리케이션 자체도 Scale Out을 고려해야 한다
+## 애플리케이션 자체도 Scale Out을 고려해야 한다
 
 Pod를 여러 개 실행한다고 해서 모든 애플리케이션이 자연스럽게 Scale Out되는 것은 아니다.
 
@@ -293,7 +293,7 @@ flowchart TB
 
 ---
 
-# 늘어난 Pod로 트래픽은 어떻게 분산될까?
+## 늘어난 Pod로 트래픽은 어떻게 분산될까?
 
 Pod는 생성되고 삭제되며 IP도 변경될 수 있다. Client가 특정 Pod를 직접 호출한다면 Replica가 바뀔 때마다 대상 주소를 추적해야 한다.
 
@@ -318,7 +318,7 @@ flowchart LR
 
 ---
 
-# Scale Out에도 준비 시간이 필요하다
+## Scale Out에도 준비 시간이 필요하다
 
 또 하나 고려해야 할 점은 새로운 Pod가 생성되는 데 시간이 필요하다는 것이다. 특히 Spring 기반 애플리케이션이라면 다음과 같은 과정이 존재한다.
 
@@ -342,7 +342,7 @@ Autoscaling은 단순히 **얼마나 많이 늘릴 것인가**뿐만 아니라 *
 
 ---
 
-# 트래픽 증가부터 처리 용량 확장까지
+## 트래픽 증가부터 처리 용량 확장까지
 
 지금까지의 구조를 하나로 연결하면 아래와 같다.
 
@@ -387,7 +387,7 @@ flowchart TB
 
 ---
 
-# Kubernetes를 넘어 시스템 전체의 Scalability로
+## Kubernetes를 넘어 시스템 전체의 Scalability로
 
 Kubernetes는 트래픽 증가에 따라 Pod를 늘리고, 필요한 경우 Worker Node의 Capacity까지 확장할 수 있는 기반을 제공한다. 하지만 Pod가 늘어났다는 사실만으로 시스템 전체의 처리량이 같은 비율로 증가하진 않는다.
 
