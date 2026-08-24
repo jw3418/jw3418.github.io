@@ -219,7 +219,7 @@ Configuration → 현재 환경에서 어떻게 실행할 것인가
 Environment → 어디에서 실행할 것인가
 ```
 
-이렇게 각 역할을 분리해서 보면, 동일한 Artifact를 여러 환경에서 사용할 수 있는 이유도 명확해진다. **Application Version과 환경별 Configuration을 별도로 관리하기 때문에, 하나의 Artifact를 각 환경에서 재사용**할 수 있게 된다.
+이렇게 각 역할을 분리함으로서 **Application Version과 환경별 Configuration 별도 관리가 가능해지고, 하나의 Artifact를 각 환경에서 재사용**할 수 있게 되는 것이다.
 
 ---
 
