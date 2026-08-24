@@ -19,7 +19,7 @@ application-prod.yml
 
 실행할 Profile을 지정하면 해당 환경의 설정을 적용할 수 있기 때문에, 처음에는 환경별 설정을 관리하는 방법 자체에는 큰 의문이 없었다.
 
-그런데 Docker와 Kubernetes 기반의 배포 구조를 조금 더 살펴보면서 다른 지점이 궁금해졌다. 동일한 Container Image를 여러 환경에 배포할 수 있다면, 환경별 Configuration은 어디까지 Image에 포함되어야 할까?
+그런데 Docker와 Kubernetes 기반의 배포 구조를 조금 더 살펴보다 보니, 한 번 빌드한 Artifact를 여러 환경에 순차적으로 배포하는 Artifact Promotion 구조에 대해 접하게 되었고, 동일한 Container Image를 여러 환경에 배포할 수 있다면 환경별 Configuration은 어디까지 Image에 포함시켜야 할 지에 대한 궁금증이 생겼다.
 
 환경별 설정 파일을 Image 안에 모두 넣고 Profile만 다르게 지정하는 방식도 가능하지만, 이 경우 Configuration 역시 Application과 함께 빌드되고 배포된다. 반대로 Configuration을 Artifact 밖에서 관리한다면 Application Code의 변경과 환경 설정의 변경을 서로 다른 흐름으로 관리할 수 있다.
 
@@ -56,7 +56,7 @@ flowchart LR
     App --> Prd["PRD Profile"]
 ```
 
-이 관점에서 Profile은 **실행 환경에 따라 어떤 설정을 적용할지 결정**하는 역할을 한다. 하지만 어떤 설정을 적용할지 구분하는 것과 Configuration의 Lifecycle을 Application으로부터 분리하는 것은 의미가 다르다.
+이 관점에서 Profile은 **실행 환경에 따라 어떤 설정을 적용할지 결정**하는 역할을 한다.
 
 ---
 
@@ -219,7 +219,7 @@ Configuration → 현재 환경에서 어떻게 실행할 것인가
 Environment → 어디에서 실행할 것인가
 ```
 
-이렇게 각 역할을 분리해서 보면, 동일한 Artifact를 여러 환경에서 사용할 수 있는 이유도 명확해진다. **Application Version과 환경별 Configuration을 별도로 관리하기 때문에, 하나의 Artifact를 각 환경에서 재사용할 수 있는 것**이다.
+이렇게 각 역할을 분리해서 보면, 동일한 Artifact를 여러 환경에서 사용할 수 있는 이유도 명확해진다. **Application Version과 환경별 Configuration을 별도로 관리하기 때문에, 하나의 Artifact를 각 환경에서 재사용**할 수 있게 된다.
 
 ---
 
