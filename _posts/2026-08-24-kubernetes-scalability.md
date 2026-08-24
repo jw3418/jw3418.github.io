@@ -383,15 +383,13 @@ flowchart TB
     SERVICE --> DB
 ```
 
-이 구조에서 Kubernetes는 필요한 Pod 수를 유지하고, 적절한 Worker Node에 배치하며, 필요하다면 Node Capacity를 확장할 수 있다. 하지만 그 이후의 시스템 처리량까지 Kubernetes가 보장하는 것은 아니다.
+이 구조에서 Kubernetes는 필요한 Pod 수를 유지하고, 적절한 Worker Node에 배치하며, 필요하다면 Node Capacity를 확장할 수 있다. 하지만 그 이후의 시스템 처리량까지 Kubernetes가 보장하지는 못한다.
 
 ---
 
 # Kubernetes를 넘어 시스템 전체의 Scalability로
 
-Kubernetes는 트래픽 증가에 따라 Pod를 늘리고, 필요한 경우 Worker Node의 Capacity까지 확장할 수 있는 기반을 제공한다.
-
-하지만 Pod가 늘어났다는 사실만으로 시스템 전체의 처리량이 같은 비율로 증가하는 것은 아니다.
+Kubernetes는 트래픽 증가에 따라 Pod를 늘리고, 필요한 경우 Worker Node의 Capacity까지 확장할 수 있는 기반을 제공한다. 하지만 Pod가 늘어났다는 사실만으로 시스템 전체의 처리량이 같은 비율로 증가하진 않는다.
 
 ```text
 Traffic 증가
