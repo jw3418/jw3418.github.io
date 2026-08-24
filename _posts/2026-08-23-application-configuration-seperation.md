@@ -19,7 +19,7 @@ application-prod.yml
 
 실행할 Profile을 지정하면 환경별 설정을 구분해서 적용할 수 있기 때문에, 처음에는 이러한 구조 자체에 큰 의문은 없었다.
 
-다만 배포 구조를 조금 더 살펴보면서, Profile별 설정 파일이 Application Artifact 안에 함께 포함되어 있다면 환경 설정이 변경될 때마다 Application의 Build와 Deployment 과정도 함께 따라가야 하는 것일까?에 대한 의문점이 생겼다.
+다만 배포 구조를 조금 더 살펴보면서, Profile별 설정 파일이 Application Artifact 안에 함께 포함되어 있다면 환경 설정이 변경될 때마다 Application의 Build와 Deployment 과정도 함께 따라가야 한다는 점이 다소 불편하게 느껴졌다.
 
 이후 Docker와 Kubernetes 기반의 배포 방식을 살펴보면서, 한 번 빌드한 Artifact를 DEV에서 검증한 뒤 STG, PRD로 순차적으로 승격시키는 Artifact Promotion 구조를 접하게 되었다.
 
@@ -37,7 +37,7 @@ STG
 PRD
 ```
 
-해당 구조에서는 동일한 Container Image가 여러 환경에서 실행될 수 있다. 그렇다면 DB 주소나 외부 API Endpoint처럼 환경마다 달라지는 Configuration은 Artifact 안에 함께 포함되어야 할까, 아니면 Application과 별도의 Lifecycle로 관리되어야 할까?
+해당 구조에서는 동일한 Container Image가 여러 환경에서 실행될 수 있다. 이 경우 환경마다 달라지는 Configuration을 **Artifact에 포함**할지, **Application과 분리해 별도로 관리할지**가 중요한 지점이 된다.
 
 이 글에서는 이러한 관점에서 **Spring Profile**과 **Configuration Externalization**이 각각 어떤 역할을 하는지, 그리고 **Application**과 **Configuration**을 분리해서 관리하는 이유를 배포 구조와 함께 정리해보고자 한다.
 
@@ -233,7 +233,7 @@ Configuration → 현재 환경에서 어떻게 실행할 것인가
 Environment → 어디에서 실행할 것인가
 ```
 
-이렇게 각 역할을 분리함으로서 **Application Version과 환경별 Configuration 별도 관리가 가능해지고, 하나의 Artifact를 각 환경에서 재사용**할 수 있게 되는 것이다.
+이렇게 각 역할을 분리하면 **Application Version과 환경별 Configuration을 별도로 관리할 수 있고, 하나의 Artifact를 여러 환경에서 재사용하는 구조 가능**해진다.
 
 ---
 
