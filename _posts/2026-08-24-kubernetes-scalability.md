@@ -39,23 +39,32 @@ Kubernetes에서 하나의 MSA 서비스는 여러 Pod로 실행될 수 있으�
 
 ```mermaid
 flowchart TB
-    subgraph Cluster["Kubernetes Cluster"]
+    subgraph AWS["AWS"]
 
-        subgraph N1["Worker Node 1"]
-            O1["Order Pod #1"]
-            P1["Payment Pod #1"]
+        subgraph EKS["Amazon EKS Cluster"]
+
+            CP["EKS Control Plane<br/>AWS Managed"]
+
+            subgraph EC21["EC2 Worker Node #1"]
+                O1["Order Pod #1"]
+                P1["Payment Pod #1"]
+            end
+
+            subgraph EC22["EC2 Worker Node #2"]
+                O2["Order Pod #2"]
+                M1["Member Pod #1"]
+            end
+
+            subgraph EC23["EC2 Worker Node #3"]
+                O3["Order Pod #3"]
+                P2["Payment Pod #2"]
+            end
+
+            CP -. "관리" .-> EC21
+            CP -. "관리" .-> EC22
+            CP -. "관리" .-> EC23
+
         end
-
-        subgraph N2["Worker Node 2"]
-            O2["Order Pod #2"]
-            M1["Member Pod #1"]
-        end
-
-        subgraph N3["Worker Node 3"]
-            O3["Order Pod #3"]
-            P2["Payment Pod #2"]
-        end
-
     end
 ```
 
