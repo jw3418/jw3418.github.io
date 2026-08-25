@@ -68,6 +68,73 @@ flowchart TB
     end
 ```
 
+```mermaid
+flowchart TB
+    subgraph AWS["AWS"]
+
+        subgraph EKS["Amazon EKS Cluster"]
+
+            CP["EKS Control Plane<br/>API Server / Scheduler / Controller<br/>AWS Managed"]
+
+            subgraph EC21["EC2 Worker Node #1"]
+                K1["kubelet"]
+                R1["Container Runtime"]
+
+                subgraph OP1["Order Pod #1"]
+                    OC1["Order Container<br/>Spring Boot App"]
+                end
+
+                subgraph PP1["Payment Pod #1"]
+                    PC1["Payment Container<br/>Spring Boot App"]
+                end
+
+                K1 --> R1
+                R1 --> OP1
+                R1 --> PP1
+            end
+
+            subgraph EC22["EC2 Worker Node #2"]
+                K2["kubelet"]
+                R2["Container Runtime"]
+
+                subgraph OP2["Order Pod #2"]
+                    OC2["Order Container<br/>Spring Boot App"]
+                end
+
+                subgraph MP1["Member Pod #1"]
+                    MC1["Member Container<br/>Spring Boot App"]
+                end
+
+                K2 --> R2
+                R2 --> OP2
+                R2 --> MP1
+            end
+
+            subgraph EC23["EC2 Worker Node #3"]
+                K3["kubelet"]
+                R3["Container Runtime"]
+
+                subgraph OP3["Order Pod #3"]
+                    OC3["Order Container<br/>Spring Boot App"]
+                end
+
+                subgraph PP2["Payment Pod #2"]
+                    PC2["Payment Container<br/>Spring Boot App"]
+                end
+
+                K3 --> R3
+                R3 --> OP3
+                R3 --> PP2
+            end
+
+            CP -. "Pod 배치 / 상태 관리" .-> K1
+            CP -. "Pod 배치 / 상태 관리" .-> K2
+            CP -. "Pod 배치 / 상태 관리" .-> K3
+
+        end
+    end
+```
+
 예를 들어 `order-service`가 세 개의 Replica를 가진다면 `Order Pod #1`, `Order Pod #2`, `Order Pod #3`처럼 여러 Pod로 실행될 수 있다. 이 Pod들은 모두 같은 Worker Node에 배치될 필요가 없으며, Scheduler에 의해 서로 다른 Worker Node에 분산될 수 있다.
 
 반대로 하나의 Worker Node에서도 서로 다른 서비스의 Pod가 함께 실행될 수 있다. 즉 MSA의 Service와 Worker Node가 1:1로 연결되는 구조는 아니다.
