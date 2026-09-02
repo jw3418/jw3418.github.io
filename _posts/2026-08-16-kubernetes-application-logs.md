@@ -1,11 +1,11 @@
 ---
 layout: post
-title: "Kubernetes 로그 이해하기"
+title: "Kubernetes Log 이해하기"
 date: 2026-08-16
 categories: [Observability]
 ---
 
-# Kubernetes 로그 이해하기
+# Kubernetes Log 이해하기
 
 Kubernetes 기반 서비스를 운영하면서 애플리케이션 로그를 여러 방식으로 확인할 일이 있었다.
 
