@@ -58,7 +58,7 @@ flowchart LR
 
 Terraform의 기본 실행 흐름은 단순하다.
 
-- `terraform init`: Provider와 Backend 등 실행에 필요한 환경을 초기화한다.
+- `terraform init`: Provider (Terraform이 AWS API를 호출해 실제 리소스를 조회·생성·수정할 수 있도록 연결하는 플러그인)와 Backend 등 실행에 필요한 환경을 초기화한다.
 - `terraform plan`: 현재 상태와 선언한 상태를 비교해 변경 계획을 만든다.
 - `terraform apply`: 계획된 변경을 실제 인프라에 반영한다.
 
@@ -146,61 +146,131 @@ flowchart LR
 
 ---
 
-## Terraform은 기존 리소스를 어떻게 찾을까
+## Terraform은 기존 AWS 리소스를 어떻게 기억할까
 
-Terraform 코드에 다음 리소스가 선언되어 있다고 해보자.
+Terraform 코드에 다음과 같은 EC2 리소스가 선언되어 있다고 해보자.
 
 ```hcl
 resource "aws_instance" "app" {
+  ami           = "ami-xxxxxxxx"
   instance_type = "t3.medium"
 }
 ```
 
-AWS에는 실제 EC2 인스턴스가 존재한다.
+Terraform 코드에서는 이 리소스를 `aws_instance.app`이라는 Resource Address로 식별한다. 반면 AWS에 생성된 실제 EC2는 다음과 같은 고유 ID를 가진다.
 
 ```text
 i-0123456789abcdef
 ```
 
-Terraform은 `aws_instance.app`과 실제 EC2가 같은 대상이라는 사실을 알아야 이후 변경이나 삭제를 수행할 수 있다. 이 연결 관계를 추적하는 것이 **Terraform State**다.
+Terraform이 이후 이 EC2를 수정하거나 삭제하려면 `aws_instance.app`이 `i-0123456789abcdef`을 가리킨다는 사실을 알고 있어야 한다. 이 연결 관계를 기록하는 것이 **Terraform State**이다.
+
+### 코드의 Resource Address와 실제 AWS ID를 연결하는 State
+
+Terraform을 통해 EC2를 생성하면 AWS에서 반환된 실제 Resource ID가 State에 기록된다.
+
+```mermaid
+flowchart LR
+    Config["Terraform Configuration<br/>aws_instance.app"] --> TF["Terraform Apply"]
+    TF --> Provider["AWS Provider"]
+    Provider --> AWS["AWS EC2 생성<br/>i-0123456789abcdef"]
+    AWS --> State["Terraform State 기록<br/>Resource: aws_instance.app<br/>AWS ID: i-0123456789abcdef"]
+```
+
+이후 Terraform은 State를 통해 `aws_instance.app`이 어떤 실제 EC2를 의미하는지 찾을 수 있다.
+
+```mermaid
+flowchart LR
+    Address["Resource Address<br/>aws_instance.app"] --> State["Terraform State"]
+    State --> ID["AWS Resource ID<br/>i-0123456789abcdef"]
+```
+
+반대로 AWS Console에서 미리 생성한 EC2는 Terraform State에 연결 정보가 없다. 따라서 Terraform이 이름이나 Tag를 보고 기존 EC2를 자동으로 자신의 관리 대상으로 판단하지는 않는다.
+
+이미 존재하는 리소스를 Terraform으로 관리하려면 `terraform import` 등을 통해 Terraform Resource Address와 실제 Resource ID를 State에 연결해야 한다.
+
+```text
+terraform import aws_instance.app i-0123456789abcdef
+```
+
+결국 Terraform이 관리할 수 있는 대상은 **Terraform이 직접 생성했거나 State에 명시적으로 연결된 리소스**라고 볼 수 있다.
+
+### Plan은 Configuration, State, 실제 AWS 상태를 함께 확인한다
+
+State에는 Resource ID뿐 아니라 Terraform이 마지막으로 확인한 리소스의 속성 정보도 저장된다. 다만 Terraform 실행 이후 누군가 Console에서 Instance Type을 변경했을 수도 있고, 다른 자동화 도구가 리소스 설정을 수정했을 수도 있기 때문에, State에 기록된 값이 항상 현재 AWS 상태와 같다고 볼 수는 없다.
+
+따라서 Terraform은 일반적으로 Plan 과정에서 다음 세 가지 정보를 사용한다.
+
+| 구분                    | 역할                                     |
+| --------------------- | -------------------------------------- |
+| Configuration         | 코드에 선언한 원하는 상태                         |
+| State                 | Terraform Resource와 실제 Resource의 연결 정보 |
+| Actual Infrastructure | AWS에 현재 존재하는 리소스 상태                    |
 
 ```mermaid
 flowchart TD
-    Config["Configuration<br/>원하는 인프라"] --> Terraform["Terraform"]
-    State["State<br/>리소스 매핑"] --> Terraform
-    Actual["AWS<br/>실제 인프라"] --> Terraform
-    Terraform --> Plan["차이를 계산한 Plan"]
+    Config["Configuration<br/>원하는 상태<br/>t3.medium"] --> Compare["Terraform Plan"]
+    State["State<br/>관리 대상 ID<br/>i-0123456789abcdef"] --> Lookup["AWS Provider로 조회"]
+    AWS["Actual Infrastructure<br/>현재 상태<br/>t3.large"] --> Lookup
+    Lookup --> Compare
+    Compare --> Result["Plan 결과<br/>t3.large → t3.medium"]
 ```
 
-State를 단순한 리소스 목록으로만 보면 역할을 놓치기 쉽다. 핵심은 Terraform Configuration의 Resource Address와 원격 시스템의 실제 리소스를 연결하는 데 있다.
+예를 들어 Configuration에는 Instance Type이 `t3.medium`으로 선언되어 있지만, 실제 AWS에서는 `t3.large`로 변경되어 있다고 가정해보자.
 
-| 구분 | 의미 |
-| --- | --- |
-| Configuration | 코드에 선언한 원하는 인프라 |
-| State | Terraform 리소스와 실제 리소스의 연결 정보 |
-| Actual Infrastructure | AWS에 현재 존재하는 인프라 |
+State에 저장된 EC2 ID를 이용해 실제 리소스를 조회하면 두 상태의 차이를 확인할 수 있다.
 
-Terraform은 Plan 과정에서 Provider를 통해 실제 인프라를 확인하고, Configuration 및 State와 비교해 필요한 변경을 계산한다. 즉 `.tf` 파일만 읽고 리소스를 매번 새로 만드는 것이 아니라, 기존에 관리하던 대상과 원하는 상태의 차이를 계산한다.
+```text
+Configuration          t3.medium
+State                  aws_instance.app ↔ i-0123456789abcdef
+Actual Infrastructure  t3.large
+```
 
-팀과 Pipeline이 같은 인프라를 관리한다면 State도 공유되어야 한다. 각 실행 주체가 서로 다른 로컬 State를 가진다면 같은 리소스를 일관되게 추적하기 어렵기 때문이다. 조직 환경에서 S3 같은 Remote Backend를 사용하는 이유이다.
+Terraform은 이 차이를 바탕으로 다음과 같은 Plan을 만든다.
 
-### S3의 ZIP 파일은 State가 아니다
+```text
+~ instance_type: "t3.large" → "t3.medium"
+```
 
-Pipeline을 살펴보다 보면 Terraform 파일이 ZIP 형태로 S3에 저장된 모습을 볼 수 있다. 이 파일은 Terraform State가 아니라 Stage 사이에서 소스와 결과물을 전달하기 위한 **Pipeline Artifact**일 수 있다.
+즉 Terraform은 `.tf` 파일만 보고 리소스를 매번 새로 만드는 것이 아니라, **State로 관리 대상을 찾고, Provider로 실제 상태를 조회한 뒤, Configuration에 선언된 원하는 상태와 비교해 변경 계획을 계산한다.**
+
+### 여러 실행 주체가 같은 State를 사용하려면
+
+Terraform은 기본적으로 State를 실행한 로컬 환경의 `terraform.tfstate` 파일에 저장할 수 있다.
+
+개인 프로젝트에서는 로컬 State만으로도 충분할 수 있다. 하지만 여러 개발자와 Pipeline이 같은 인프라를 관리한다면 문제가 달라진다.
 
 ```mermaid
 flowchart TD
-    S3["Amazon S3"] --> Artifact["Pipeline Artifact<br/>Stage 사이의 입력·출력"]
-    S3 --> State["Terraform State<br/>관리 리소스의 상태·매핑"]
+    DevA["Developer A<br/>Local State A"] --> AWS["같은 AWS Infrastructure"]
+    DevB["Developer B<br/>Local State B"] --> AWS
+    Pipeline["CI/CD Pipeline<br/>Local State C"] --> AWS
 ```
 
-두 데이터가 모두 S3에 저장될 수 있다는 공통점만 있을 뿐 목적은 다르다. Artifact는 Pipeline 실행 중 데이터를 전달하고, State는 Terraform이 관리하는 인프라를 추적한다.
+각 실행 주체가 서로 다른 State를 사용하면 동일한 리소스에 대한 연결 정보와 마지막 상태가 서로 달라질 수 있다. 누구의 State를 기준으로 Plan을 실행하느냐에 따라 결과가 달라질 위험도 생긴다.
+
+그래서 운영 환경에서는 State를 개인 PC에 두기보다 여러 실행 주체가 접근할 수 있는 **Remote Backend**에 저장한다. AWS 환경에서는 보통 S3를 Terraform Backend로 사용한다.
+
+```mermaid
+flowchart TD
+    DevA["Developer A"] --> Backend["S3 Remote Backend<br/>terraform.tfstate"]
+    DevB["Developer B"] --> Backend
+    Pipeline["CI/CD Pipeline"] --> Backend
+    Backend --> Terraform["동일한 State를 기준으로<br/>Terraform 실행"]
+    Terraform --> AWS["AWS Infrastructure"]
+```
+
+S3를 Terraform Backend로 사용함으로서, 여러 개발자들과 Pipeline은 S3에 저장된 하나의 State를 기준으로 같은 인프라를 관리할 수 있게 된다.
+
+여기까지 따라오면 Terraform Pipeline에서 S3가 등장하는 이유도 이해할 수 있다. 그런데 실제 Pipeline을 살펴보면 State 파일뿐 아니라 Terraform 코드가 들어 있는 ZIP 파일도 S3에서 발견할 수 있다.
+
+같은 S3에 저장되어 있지만, 이 ZIP 파일과 Terraform State는 전혀 다른 목적으로 사용된다.
 
 ---
 
-## Console 변경이 문제를 만드는 순간
+## Console 변경이 문제가 되는 순간
 
-Terraform Configuration에 Auto Scaling Group의 Desired Capacity가 `10`으로 선언되어 있다고 하자.
+Terraform Configuration에 Auto Scaling Group의 Desired Capacity가 `10`으로 선언되어 있다고 가정해보자.
 
 ```text
 Desired Capacity = 10
@@ -253,7 +323,7 @@ flowchart LR
 
 처음에는 IaC를 단순히 “인프라를 코드로 만드는 것”이라고 이해했다. 실제 Pipeline과 State를 함께 살펴보니 각 요소는 하나의 흐름으로 이어져 있었다.
 
-| 요소 | 맡는 역할 |
+| 요소 | 역할 |
 | --- | --- |
 | Git | 무엇을 왜 바꾸었는지 기록한다. |
 | Plan | 실제 발생할 변경을 미리 계산한다. |
@@ -266,17 +336,6 @@ flowchart LR
 
 > IaC의 핵심은 인프라를 코드로 표현하는 데서 끝나지 않는다. 인프라가 변경되는 경로와 그 결과를 일관되게 관리하는 데 있다.
 
-이 관점에서 Terraform은 AWS 리소스를 생성하는 CLI보다, 선언한 상태와 실제 상태의 차이를 계산하고 원하는 상태로 수렴시키는 도구에 가깝다. Pipeline은 그 변경이 운영 환경에 반영되는 과정을 리뷰 가능하고 재현 가능한 소프트웨어 변경 과정으로 만든다.
+이 관점에서 Terraform은 AWS 리소스를 생성하는 CLI보다, 선언한 상태와 실제 상태의 차이를 계산하고 원하는 상태로 수렴시키는 도구에 가까웠다. Pipeline은 그 변경이 운영 환경에 반영되는 과정을 리뷰 가능하고 재현 가능한 소프트웨어 변경 과정으로 만든다.
 
 이번 구조를 살펴보며 가장 크게 달라진 점도 Terraform 문법에 대한 지식이 아니었다. **인프라 변경 자체를 하나의 소프트웨어 변경 과정으로 바라보게 된 것**이었다.
-
----
-
-## 참고 자료
-
-- [Terraform State](https://developer.hashicorp.com/terraform/language/state)
-- [Terraform apply command](https://developer.hashicorp.com/terraform/cli/commands/apply)
-- [Manage resource drift](https://developer.hashicorp.com/terraform/tutorials/state/resource-drift)
-- [Terraform remote state](https://developer.hashicorp.com/terraform/language/state/remote)
-- [AWS CodePipeline Manual Approval](https://docs.aws.amazon.com/codepipeline/latest/userguide/approvals.html)
-- [AWS CodePipeline input and output artifacts](https://docs.aws.amazon.com/codepipeline/latest/userguide/welcome-introducing-artifacts.html)
