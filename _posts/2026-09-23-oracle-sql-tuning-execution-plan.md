@@ -21,7 +21,7 @@ SQL 성능을 개선한다고 하면 가장 먼저 인덱스를 떠올리기 쉽
 
 > **같은 결과를 만들기 위해 DB가 실제로 어디에서 많은 일을 하고 있는가?**
 
-이번 글에서는 Oracle 실행계획과 실행 통계를 어떻게 읽는지 정리하고, 실제 경험한 사례를 일반화하여 어떤 방식으로 SQL의 작업량을 줄였는지 살펴본다.
+이번 글에서는 Oracle 실행계획과 실행 통계를 어떻게 읽는지 정리하고, 실제 경험한 사례를 일반화하여 어떤 방식으로 SQL의 작업량을 줄였는지 살펴보고자 한다.
 
 ## SQL 튜닝에서 무엇을 측정할 것인가
 
@@ -933,25 +933,17 @@ FAST DUAL
 
 ### TABLE ACCESS FULL은 항상 나쁜가
 
-그렇지 않다.
-
 테이블 대부분을 읽어야 하는 SQL이라면 Index를 수십만 번 따라가는 것보다 Full Scan이 더 효율적일 수 있다.
 
 ### INDEX RANGE SCAN은 항상 좋은가
-
-그렇지 않다.
 
 Index Range Scan으로 수십만 건의 `ROWID`를 얻은 뒤 Table Access가 반복된다면 Full Scan보다 더 많은 Random I/O를 만들 수 있다.
 
 ### NESTED LOOPS는 항상 빠른가
 
-그렇지 않다.
-
 Outer 결과가 작고 Inner Index가 효율적이면 빠르지만, Cardinality 추정이 틀려 Outer 결과가 커지면 Inner 접근 횟수가 급격히 증가할 수 있다.
 
 ### HASH JOIN은 항상 무거운가
-
-그렇지 않다.
 
 많은 데이터를 조인해야 하는 경우에는 오히려 반복 Index Lookup보다 유리할 수 있다.
 
