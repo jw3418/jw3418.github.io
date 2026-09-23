@@ -5,6 +5,7 @@ date: 2026-09-23
 categories: [Database]
 ---
 
+# Oracle SQL 튜닝 - 실행계획에서 병목을 찾는 방법
 
 SQL 성능을 개선한다고 하면 가장 먼저 인덱스를 떠올리기 쉽다.
 
