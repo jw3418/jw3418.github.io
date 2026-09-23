@@ -15,7 +15,7 @@ SQL 성능을 개선할 때 가장 먼저 떠올리는 것은 인덱스이다. �
 - 문자열 검색으로 구현된 조건 때문에 범위 검색이 불가능할 수도 있다.
 - Optimizer가 예상한 row 수와 실제 row 수가 크게 달라 잘못된 실행계획을 선택할 수도 있다.
 
-실행계획을 들여다보면 어떤 Operation이 선택됐는지 자체보다, 어디에서 많은 데이터를 읽고 어떤 작업이 반복되고 있는지를 보는 편이 더 중요하다.
+실행계획을 들여다보면 어떤 Operation이 선택됐는지 자체보다, 어디에서 많은 데이터를 읽고 어떤 작업이 반복되고 있는지를 보는 것이 더 중요하다.
 
 > **같은 결과를 반환하는데도 SQL마다 작업량이 달라지는 이유는 무엇일까?**
 
@@ -137,7 +137,7 @@ flowchart LR
     G --> H
 ```
 
-실행계획을 볼 때는 **Rows가 어디에서 늘어나는지 → Buffers가 어디에서 증가하는지 → 어떤 Predicate가 적용되는지 → 왜 이 Access Path가 선택됐는지** 순서로 따라가면 흐름을 잡기 쉽다.
+실행계획을 볼 때는 **Rows가 어디에서 늘어나는지 → Buffers가 어디에서 증가하는지 → 어떤 Predicate가 적용되는지 → 왜 이 Access Path가 선택됐는지** 순서로 순서로 보면 실행 흐름을 파악할 수 있다.
 
 ## 인덱스는 있는데 왜 사용하지 않을까
 
@@ -173,7 +173,7 @@ flowchart TD
     L3 --> T3
 ```
 
-Branch Block은 어떤 하위 블록으로 이동할지를 결정하는 데 사용되고, Leaf Block에는 실제 Index Key와 해당 row를 찾기 위한 `ROWID`가 저장된다. 즉 B-Tree Index의 핵심은 **정렬된 Key를 이용해 탐색 범위를 좁히는 것**이다. 인덱스가 존재하는지만 보는 것보다 **WHERE 절이 인덱스의 Key를 그대로 탐색할 수 있는 형태인지**를 함께 봐야 한다.
+Branch Block은 어떤 하위 블록으로 이동할지를 결정하는 데 사용되고, Leaf Block에는 실제 Index Key와 해당 row를 찾기 위한 `ROWID`가 저장된다. 즉 B-Tree Index의 핵심은 **정렬된 Key를 이용해 탐색 범위를 좁히는 것**이다. 인덱스가 존재하는지만 보는 것보다 **WHERE 절이 인덱스의 Key를 그대로 탐색할 수 있는 형태인지**를 함께 확인해야 한다.
 
 ### Case 1. 컬럼을 결합한 조건을 분리하기
 
@@ -246,7 +246,7 @@ CREATE INDEX IDX_SAMPLE_KEY
 ON SAMPLE_TABLE (M1 || M2 || M3);
 ```
 
-어느 쪽이 더 나은지는 실제 조회 패턴과 변경 비용에 따라 달라진다.
+어느 쪽이 적절한지는 실제 조회 패턴과 변경 비용에 따라 달라진다.
 
 ### Access Predicate와 Filter Predicate
 
@@ -423,7 +423,7 @@ INDEX
 → 특정 Index 사용 유도
 ```
 
-다만 바로 Hint를 넣기보다, 먼저 왜 그런 실행계획이 선택됐는지 확인하는 편이 낫다.
+다만 바로 Hint를 넣기 전에 왜 그런 실행계획이 선택됐는지 먼저 확인해야 한다.
 
 ```text
 통계 정보가 적절한가?
@@ -479,7 +479,7 @@ flowchart LR
     R4["CODE = A"] --> F4["GET_NAME(A)"]
 ```
 
-이 구조에서는 동일한 입력값에 대해 같은 Function이 반복 호출된다. SQL에서 PL/SQL Function을 호출한다면 SQL Engine과 PL/SQL Engine 사이의 호출 비용도 계속 발생한다. 입력값이 반복되는 경우에는 Scalar Subquery 형태로 바꿔 Function Call 횟수를 줄일 수 있다.
+이 구조에서는 동일한 입력값에 대해 같은 Function이 반복 호출된다. SQL에서 PL/SQL Function을 호출한다면 SQL Engine과 PL/SQL Engine 사이의 호출 비용도 계속 발생한다. 입력값이 반복되는 경우 Scalar Subquery 형태로 변경하면 Function Call 횟수를 줄일 수 있다.
 
 ```sql
 SELECT
@@ -509,7 +509,7 @@ flowchart LR
     F --> S
 ```
 
-같은 입력값이 자주 반복될수록 Function Call을 줄이는 효과가 커질 수 있다. Oracle Ask TOM의 예제에서도 row마다 PL/SQL Function을 직접 호출했을 때보다 Scalar Subquery 형태로 감쌌을 때 호출 횟수가 크게 줄어든다.
+같은 입력값이 반복될수록 Function Call 감소 효과도 커질 수 있다. Oracle Ask TOM의 예제에서도 row마다 PL/SQL Function을 직접 호출했을 때보다 Scalar Subquery 형태로 감쌌을 때 호출 횟수가 크게 줄어든다.
 
 #### FAST DUAL이 보인다고 캐싱이 증명되는 것은 아니다
 
@@ -529,7 +529,7 @@ CPU_TIME
 ELAPSED_TIME
 ```
 
-여기서도 특정 Operation 자체보다 **실제로 반복 호출과 연산량이 줄었는지**를 보는 편이 정확하다.
+여기서도 특정 Operation 자체보다 **실제로 반복 호출과 연산량이 줄었는지**를 확인해야 한다.
 
 ## 검색 조건 자체를 다시 설계해야 하는 경우
 
@@ -568,11 +568,11 @@ WHERE START_DT <= :targetDate
   AND END_DT >= :targetDate
 ```
 
-여기에 실제 조회 패턴에 맞는 날짜 기준 Index도 추가했다. 여기서 `INSTR`은 느리고 `BETWEEN`은 빠르다는 식으로 볼 필요는 없다. **데이터가 실제로 기간을 의미한다면 기간으로 조회할 수 있는 구조를 만드는 편이 자연스럽다.** 이처럼 SQL 튜닝은 쿼리만 고치는 작업이 아니라 데이터가 어떤 형태로 저장되고 조회되는지도 함께 보게 된다.
+여기에 실제 조회 패턴에 맞는 날짜 기준 Index도 추가했다. 여기서 `INSTR`은 느리고 `BETWEEN`은 빠르다는 식으로 볼 필요는 없다. **데이터가 실제로 기간을 의미한다면 기간으로 조회할 수 있는 구조가 더 자연스럽다.** 이처럼 SQL 튜닝은 쿼리만 고치는 작업이 아니라 데이터가 어떤 형태로 저장되고 조회되는지도 함께 보게 된다.
 
 ## 추가로 자주 확인할 만한 병목
 
-앞에서는 실제로 다뤘던 문제를 중심으로 정리했다. 이외에도 실행계획을 볼 때 자주 확인하는 항목들이 있다.
+앞에서는 실제로 다뤘던 문제를 중심으로 정리했다. 이외에도 실행계획에서 자주 확인하는 항목들이 있다.
 
 ### E-Rows와 A-Rows가 크게 다른 경우
 
@@ -645,7 +645,7 @@ WHERE TO_NUMBER(USER_ID) = 12345
 WHERE USER_ID = :userId
 ```
 
-`:userId` 역시 컬럼 타입에 맞춰 문자열로 전달하는 편이 자연스럽다. 여기서도 핵심은 **Predicate에서 Index Column이 가공되고 있는지**다.
+`:userId` 역시 컬럼 타입에 맞춰 문자열로 전달하는 것이 자연스럽다. 여기서도 핵심은 **Predicate에서 Index Column이 가공되고 있는지**다.
 
 ### SORT / HASH 작업과 TEMP Spill
 
@@ -719,7 +719,7 @@ flowchart LR
     X --> Y --> Z --> W
 ```
 
-Partition Key에 함수나 암묵적 형 변환이 적용되면 Partition Pruning이 제한될 수 있다. 원리는 앞에서 본 인덱스 문제와 비슷하다. Predicate가 Partition Key를 그대로 사용할 수 있어야 Pruning도 제대로 동작하기 쉽다.
+Partition Key에 함수나 암묵적 형 변환이 적용되면 Partition Pruning이 제한될 수 있다. 원리는 앞에서 본 인덱스 문제와 비슷하다. Predicate가 Predicate가 Partition Key를 그대로 사용할 때 Partition Pruning도 정상적으로 적용될 가능성이 높다.
 
 ## 실행계획은 특정 Operation만 보고 판단할 수 없다
 
@@ -750,7 +750,7 @@ Outer 결과가 작고 Inner Index가 효율적일 때는 유리하지만, Cardi
 
 ### 많은 데이터를 조인할 때의 Hash Join
 
-많은 데이터를 조인해야 한다면 반복적인 Index Lookup보다 Hash Join이 더 효율적인 경우가 있다. 정리하면 실행계획은 아래 흐름으로 보는 편이 이해하기 쉽다.
+많은 데이터를 조인해야 한다면 반복적인 Index Lookup보다 Hash Join이 더 효율적인 경우가 있다. 정리하면 실행계획은 아래 흐름으로 보면 전체 흐름을 정리할 수 있다.
 
 ```text
 Predicate
@@ -786,7 +786,7 @@ CPU Time     : 100 → 45
 Elapsed Time : 100 → 52
 ```
 
-실행시간이 줄었다는 결과만 보기보다 **어떤 Operation의 작업량이 줄었고, 그 변화가 왜 전체 비용 감소로 이어졌는지**까지 연결해서 보는 편이 좋다.
+실행시간이 줄었다는 결과만 보는 것이 아니라 **어떤 Operation의 작업량이 줄었고, 그 변화가 왜 전체 비용 감소로 이어졌는지**까지 확인해야 한다.
 
 ## 지금까지의 튜닝을 정리하면
 
@@ -815,7 +815,7 @@ Optimizer가 더 좋은 Access Path를 선택할 수 있는 조건 만들기
 
 ## 마치며
 
-SQL 튜닝을 처음 보면 Full Scan을 없애거나 Index를 타게 만드는 작업으로 생각하기 쉽다. 하지만 실제 실행계획을 보다 보니 특정 Operation을 없애는 것 자체가 목적은 아니었다. 오히려 다음 질문들이 더 유용했다.
+SQL 튜닝을 처음 접할 때는 Full Scan을 없애거나 Index를 타게 만드는 작업으로만 생각하는 경우가 많다. 하지만 실제 실행계획을 보다 보니 특정 Operation을 없애는 것 자체가 목적은 아니었다. 오히려 다음 질문들이 더 유용했다.
 
 - 왜 이 테이블부터 읽었을까?
 - 왜 이 Index를 사용하지 않았을까?
