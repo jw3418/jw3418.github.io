@@ -2,7 +2,7 @@
 layout: post
 title: "MAX(seq) + 1과 동시성 문제"
 date: 2026-08-12
-categories: [Database & Concurrency]
+categories: [Database]
 ---
 
 # MAX(seq) + 1과 동시성 문제
