@@ -175,7 +175,7 @@ flowchart TD
 
 Branch Block은 어떤 하위 블록으로 이동할지를 결정하는 데 사용되고, Leaf Block에는 실제 Index Key와 해당 row를 찾기 위한 `ROWID`가 저장된다. 즉 B-Tree Index의 핵심은 **정렬된 Key를 이용해 탐색 범위를 좁히는 것**이다. 인덱스가 존재하는지만 보는 것보다 **WHERE 절이 인덱스의 Key를 그대로 탐색할 수 있는 형태인지**를 함께 봐야 한다.
 
-### 컬럼을 결합한 조건을 분리하기
+### Case 1. 컬럼을 결합한 조건을 분리하기
 
 다음과 같은 복합 인덱스가 있다고 하자.
 
@@ -266,7 +266,7 @@ Predicate Information
 
 SQL 튜닝에서는 최종 결과 건수보다 중간 단계에서 얼마나 많은 row를 처리했는지가 더 중요할 때가 많다.
 
-### 조회 범위를 줄이기 위해 JOIN을 추가하기
+### Case 2. 조회 범위를 줄이기 위해 JOIN을 추가하기
 
 특정 일자를 기준으로 데이터를 조회해야 했지만, 메인 테이블에는 해당 일자를 기준으로 사용할 수 있는 적절한 Access Path가 없었다. 단순화하면 기존 구조는 다음과 같았다.
 
@@ -393,7 +393,7 @@ flowchart LR
 
 많은 데이터를 조인하는 상황에서는 Hash Join이 Nested Loops보다 효율적일 수 있다. 어느 방식이 무조건 낫다고 볼 수는 없고, 실제 row 수와 Access Path를 기준으로 판단해야 한다.
 
-### Hint로 Join Order와 Access Path 조정하기
+### Case 3. Hint로 Join Order와 Access Path 조정하기
 
 실행계획을 보다 보니 Optimizer가 기대한 순서와 다르게 테이블을 읽는 경우도 있었다. 이런 경우에는 Hint를 이용해 조인 순서와 Access Path를 조정했다. 예를 들면 다음과 같은 형태다.
 
@@ -445,7 +445,7 @@ Hint는 Optimizer의 선택에 직접 개입하므로 데이터 분포나 테이
 
 SQL 튜닝에서는 Table Scan이나 Index Scan을 먼저 보게 되지만, 실제 병목이 **SQL 안에서 반복 실행되는 Function**인 경우도 있다.
 
-### Function Call과 Scalar Subquery Caching
+### Case 4. Function Call과 Scalar Subquery Caching
 
 다음과 같은 SQL이 있다고 하자.
 
@@ -533,7 +533,7 @@ ELAPSED_TIME
 
 ## 검색 조건 자체를 다시 설계해야 하는 경우
 
-### INSTR을 Range Predicate로 변경하기
+### Case 5. INSTR을 Range Predicate로 변경하기
 
 특정 일자가 어떤 기간에 포함되는지를 판단해야 하는 데이터가 있었다. 기존 SQL은 단순화하면 다음과 비슷한 형태였다.
 
