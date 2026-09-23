@@ -5,7 +5,6 @@ date: 2026-09-23
 categories: [Database]
 ---
 
-# Oracle SQL 튜닝 - 실행계획에서 병목을 찾는 방법
 
 SQL 성능을 개선한다고 하면 가장 먼저 인덱스를 떠올리기 쉽다.
 
@@ -17,17 +16,13 @@ SQL 성능을 개선한다고 하면 가장 먼저 인덱스를 떠올리기 쉽
 - 문자열 검색으로 구현된 조건 때문에 범위 검색이 불가능할 수도 있다.
 - Optimizer가 예상한 row 수와 실제 row 수가 크게 달라 잘못된 실행계획을 선택할 수도 있다.
 
-결국 SQL 튜닝에서 중요한 질문은 하나다.
+결국 SQL 튜닝에서 중요한 질문은 하나이다.
 
 > **같은 결과를 만들기 위해 DB가 실제로 어디에서 많은 일을 하고 있는가?**
 
-이번 글에서는 Oracle 실행계획과 실행 통계를 어떻게 읽는지 정리하고, 실제 프로젝트에서 경험한 사례를 일반화하여 어떤 방식으로 SQL의 작업량을 줄였는지 살펴본다.
+이번 글에서는 Oracle 실행계획과 실행 통계를 어떻게 읽는지 정리하고, 실제 경험한 사례를 일반화하여 어떤 방식으로 SQL의 작업량을 줄였는지 살펴본다.
 
-> 실제 테이블명, 컬럼명, 데이터 값은 일반화했다.
-
----
-
-## 1. SQL 튜닝에서 무엇을 측정할 것인가
+## SQL 튜닝에서 무엇을 측정할 것인가
 
 SQL이 느리다고 해서 `ELAPSED_TIME` 하나만 보면 원인을 알기 어렵다.
 
@@ -87,9 +82,7 @@ ELAPSED_TIME / EXECUTIONS
 
 중요한 것은 **동일한 조건에서 변경 전과 변경 후의 실제 작업량을 비교하는 것**이다.
 
----
-
-## 2. EXPLAIN PLAN보다 실제 실행 결과를 본다
+## EXPLAIN PLAN보다 실제 실행 결과를 본다
 
 `EXPLAIN PLAN`은 Optimizer가 예상한 실행계획을 보여준다.
 
@@ -143,17 +136,15 @@ FROM TABLE(
 
 ### E-Rows
 
-Optimizer가 예상한 row 수다.
+Optimizer가 예상한 row 수
 
 ### A-Rows
 
-실제로 Operation을 통과한 row 수다.
+실제로 Operation을 통과한 row 수
 
 ### Starts
 
-해당 Operation이 시작된 횟수다.
-
-특정 Operation의 `Starts`가 매우 크다면 반복적으로 실행되고 있다는 의미일 수 있다.
+해당 Operation이 시작된 횟수 (특정 Operation의 `Starts`가 매우 크다면 반복적으로 실행되고 있다는 의미일 수 있다.)
 
 ### Buffers
 
@@ -163,7 +154,7 @@ Optimizer가 예상한 row 수다.
 
 실제 실행 과정에서 소비된 시간을 확인할 수 있다.
 
-전체적으로는 다음 흐름으로 보는 편이 이해하기 쉽다.
+전체적으로는 다음 흐름으로 보는 것이 이해하기 쉽다.
 
 ```mermaid
 flowchart LR
@@ -187,25 +178,15 @@ flowchart LR
     G --> H
 ```
 
-실행계획을 읽는다는 것은 Operation 이름을 외우는 것이 아니라,
+실행계획을 읽는다는 것은
 
-```text
-어디에서 Rows가 늘어나는가
-        ↓
-어디에서 Buffers가 증가하는가
-        ↓
-어떤 Predicate가 적용되고 있는가
-        ↓
-왜 이 Access Path를 선택했는가
-```
+"어디에서 Rows가 늘어나는가 > 어디에서 Buffers가 증가하는가 > 어떤 Predicate가 적용되고 있는가 > 왜 이 Access Path를 선택했는가"
 
-를 따라가는 과정에 가깝다.
+를 따라가는 과정이다.
 
----
+## 인덱스는 있는데 왜 사용하지 않을까
 
-# 3. 인덱스는 있는데 왜 사용하지 않을까
-
-## B-Tree Index의 기본 구조
+### B-Tree Index의 기본 구조
 
 Oracle에서 가장 일반적으로 사용하는 B-Tree Index는 크게 Branch Block과 Leaf Block으로 구성된다.
 
@@ -245,9 +226,7 @@ Branch Block은 어떤 하위 블록으로 이동할지를 결정하는 데 사�
 
 > **WHERE 절이 인덱스가 가지고 있는 Key를 탐색할 수 있는 형태인가?**
 
----
-
-## Case 1. 컬럼을 결합한 조건을 분리하기
+### Case 1. 컬럼을 결합한 조건을 분리하기
 
 다음과 같은 복합 인덱스가 있다고 하자.
 
@@ -332,9 +311,7 @@ ON SAMPLE_TABLE (M1 || M2 || M3);
 
 결국 선택 기준은 실제 조회 패턴과 변경 비용이다.
 
----
-
-## Access Predicate와 Filter Predicate
+### Access Predicate와 Filter Predicate
 
 실행계획의 Predicate Information을 보면 다음과 같이 `access`와 `filter`가 구분될 수 있다.
 
@@ -373,15 +350,13 @@ INDEX RANGE SCAN이 있다.
 
 를 보는 것이 더 중요하다.
 
----
-
-# 4. 데이터를 언제 줄이는가
+## 데이터를 언제 줄이는가
 
 SQL 튜닝에서 자주 놓치는 부분 중 하나는 **최종 결과가 몇 건인가**만 보는 것이다.
 
 중요한 것은 최종 결과 이전에 **중간 단계에서 몇 건을 처리했는가**다.
 
-## Case 2. 조회 범위를 줄이기 위해 JOIN을 추가하기
+### Case 2. 조회 범위를 줄이기 위해 JOIN을 추가하기
 
 특정 일자를 기준으로 데이터를 조회해야 했지만, 메인 테이블에는 해당 일자를 기준으로 사용할 수 있는 적절한 Access Path가 없었다.
 
@@ -437,9 +412,7 @@ JOIN이 하나 늘었으므로 SQL 자체는 더 복잡해졌다.
 > JOIN을 줄이는 것이 항상 튜닝은 아니다.  
 > 때로는 더 좋은 Access Path를 만들기 위해 JOIN을 추가하는 것이 전체 작업량을 줄일 수 있다.
 
----
-
-## Alias는 단순한 스타일 문제가 아니다
+### Alias는 단순한 스타일 문제가 아니다
 
 테이블이 추가되면서 모든 컬럼의 소속을 명확하게 표시했다.
 
@@ -457,9 +430,7 @@ WHERE M.STATUS = :status
 
 실행계획의 Predicate와 실제 SQL을 비교할 때 어떤 테이블의 어떤 조건이 후보 row를 줄이는지 빠르게 확인할 수 있다.
 
----
-
-# 5. JOIN은 어떤 테이블부터 읽는지도 중요하다
+## JOIN은 어떤 테이블부터 읽는지도 중요하다
 
 두 쿼리가 같은 결과를 반환하더라도 중간 처리량은 크게 다를 수 있다.
 
@@ -481,13 +452,11 @@ Case B
 
 중요한 것은 큰 테이블이 존재한다는 사실이 아니라, **큰 테이블에 접근하기 전에 얼마나 후보 데이터를 줄였는가**다.
 
----
-
-## Nested Loops와 Hash Join
+#### Nested Loops와 Hash Join
 
 조인 방식도 처리 데이터의 특성에 따라 달라진다.
 
-### Nested Loops
+#### Nested Loops
 
 개념적으로 다음과 같다.
 
@@ -509,7 +478,7 @@ Outer 결과가 작고 Inner Table에 효율적인 Index가 있다면 매우 유
 
 반대로 Outer에서 예상보다 많은 row가 나오면 Inner 접근이 반복되면서 비용이 급격하게 증가할 수 있다.
 
-### Hash Join
+#### Hash Join
 
 두 데이터 집합 중 하나를 기반으로 Hash Table을 만들고 다른 데이터 집합을 비교한다.
 
@@ -540,9 +509,7 @@ Hash Join    = 나쁘다
 
 실제 row 수와 Access Path를 기준으로 판단해야 한다.
 
----
-
-## Case 3. Hint로 Join Order와 Access Path 조정하기
+### Case 3. Hint로 Join Order와 Access Path 조정하기
 
 프로젝트에서는 실행계획을 확인한 뒤 특정 SQL에서 Optimizer가 원하는 순서로 테이블을 읽지 않는 경우가 있었다.
 
@@ -598,15 +565,13 @@ Hint는 결국 Optimizer의 선택에 개입하는 방법이다.
 
 데이터 분포나 테이블 크기가 바뀌어도 해당 실행계획이 계속 적절한지 고려해야 한다.
 
----
-
-# 6. I/O가 아니라 반복 연산이 문제인 경우
+## I/O가 아니라 반복 연산이 문제인 경우
 
 SQL 튜닝이라고 하면 대부분 Table Scan이나 Index Scan을 먼저 생각한다.
 
 하지만 실제 병목이 **SQL 안에서 반복 실행되는 Function**일 수도 있다.
 
-## Case 4. Function Call과 Scalar Subquery Caching
+### Case 4. Function Call과 Scalar Subquery Caching
 
 다음과 같은 SQL이 있다고 하자.
 
@@ -682,7 +647,7 @@ Oracle Ask TOM의 예제에서도 row마다 PL/SQL Function을 호출한 경우�
 
 다만 여기서 주의할 점이 있다.
 
-### FAST DUAL이 보인다고 캐싱이 증명되는 것은 아니다
+#### FAST DUAL이 보인다고 캐싱이 증명되는 것은 아니다
 
 Scalar Subquery에서
 
@@ -713,11 +678,9 @@ ELAPSED_TIME
 
 즉 실행계획의 특정 Operation 이름보다 **실제로 반복 연산이 줄었는가**가 중요하다.
 
----
+## 검색 조건 자체를 다시 설계해야 하는 경우
 
-# 7. 검색 조건 자체를 다시 설계해야 하는 경우
-
-## Case 5. INSTR을 Range Predicate로 변경하기
+### Case 5. INSTR을 Range Predicate로 변경하기
 
 특정 일자가 어떤 기간에 포함되는지를 판단해야 하는 데이터가 있었다.
 
@@ -773,17 +736,13 @@ BETWEEN은 빠르다.
 
 SQL 튜닝을 하다 보면 쿼리의 문제가 데이터 표현 방식의 문제와 연결되는 경우가 있다.
 
----
-
-# 8. 추가로 자주 확인할 만한 병목
+## 추가로 자주 확인할 만한 병목
 
 앞의 사례들은 실제 작업에서 다뤘던 문제를 중심으로 정리했다.
 
 하지만 실행계획을 분석할 때는 이외에도 다음 항목을 함께 보면 좋다.
 
----
-
-## 8.1 E-Rows와 A-Rows가 크게 다른 경우
+### E-Rows와 A-Rows가 크게 다른 경우
 
 다음과 같은 실행계획이 있다고 하자.
 
@@ -833,9 +792,7 @@ Predicate 간 상관관계가 있는가?
 
 즉 SQL 문법만 바꾸는 것이 아니라 **Optimizer가 왜 row 수를 잘못 예상했는지** 확인해야 한다.
 
----
-
-## 8.2 암묵적 형 변환
+### 암묵적 형 변환
 
 다음과 같이 컬럼이 `VARCHAR2`라고 하자.
 
@@ -872,9 +829,7 @@ WHERE USER_ID = :userId
 
 > **Predicate에서 Index Column에 어떤 연산이 적용되고 있는가?**
 
----
-
-## 8.3 SORT / HASH 작업과 TEMP Spill
+### SORT / HASH 작업과 TEMP Spill
 
 실행계획에서 다음 Operation도 자주 볼 수 있다.
 
@@ -909,9 +864,7 @@ flowchart LR
 
 따라서 `BUFFER_GETS`가 생각보다 크지 않은데 `ELAPSED_TIME`이 높다면 I/O 외의 요소도 같이 볼 필요가 있다.
 
----
-
-## 8.4 Partition Pruning
+### Partition Pruning
 
 대용량 이력 테이블은 날짜 기준 Partition을 사용하는 경우가 많다.
 
@@ -962,9 +915,7 @@ Partition Key에 함수나 암묵적 형 변환이 적용되면 Partition Prunin
 
 > DB가 가지고 있는 물리적인 탐색 기준을 Predicate가 그대로 사용할 수 있는가?
 
----
-
-# 9. 실행계획에서 Operation 이름만 보면 안 되는 이유
+## 실행계획에서 Operation 이름만 보면 안 되는 이유
 
 처음 실행계획을 보면 다음 Operation 이름이 눈에 들어온다.
 
@@ -979,33 +930,25 @@ FAST DUAL
 
 하지만 특정 Operation이 존재한다고 해서 좋은 계획 또는 나쁜 계획이라고 단정할 수 없다.
 
----
-
-## TABLE ACCESS FULL은 항상 나쁜가
+### TABLE ACCESS FULL은 항상 나쁜가
 
 그렇지 않다.
 
 테이블 대부분을 읽어야 하는 SQL이라면 Index를 수십만 번 따라가는 것보다 Full Scan이 더 효율적일 수 있다.
 
----
-
-## INDEX RANGE SCAN은 항상 좋은가
+### INDEX RANGE SCAN은 항상 좋은가
 
 그렇지 않다.
 
 Index Range Scan으로 수십만 건의 `ROWID`를 얻은 뒤 Table Access가 반복된다면 Full Scan보다 더 많은 Random I/O를 만들 수 있다.
 
----
-
-## NESTED LOOPS는 항상 빠른가
+### NESTED LOOPS는 항상 빠른가
 
 그렇지 않다.
 
 Outer 결과가 작고 Inner Index가 효율적이면 빠르지만, Cardinality 추정이 틀려 Outer 결과가 커지면 Inner 접근 횟수가 급격히 증가할 수 있다.
 
----
-
-## HASH JOIN은 항상 무거운가
+### HASH JOIN은 항상 무거운가
 
 그렇지 않다.
 
@@ -1027,9 +970,7 @@ Starts
 Buffers / CPU / Elapsed
 ```
 
----
-
-# 10. 튜닝 전후에는 무엇을 비교할 것인가
+## 튜닝 전후에는 무엇을 비교할 것인가
 
 SQL을 수정했다고 끝이 아니다.
 
@@ -1064,9 +1005,7 @@ Elapsed Time : 100 → 52
 
 까지 연결해서 설명하는 것이다.
 
----
-
-# 11. 이번 튜닝 사례를 다시 분류해보면
+## 이번 튜닝 사례를 다시 분류해보면
 
 실제 작업에서 다룬 사례를 튜닝 관점에서 다시 분류하면 다음과 같다.
 
@@ -1093,9 +1032,7 @@ Optimizer가 더 좋은 Access Path를 선택할 수 있는 조건 만들기
 
 결국 모두 **DB가 같은 결과를 만들기 위해 해야 하는 일의 양을 줄이는 작업**이었다.
 
----
-
-# 12. 마치며
+## 마치며
 
 SQL 튜닝을 처음 접했을 때는 다음과 같이 생각하기 쉽다.
 
@@ -1109,19 +1046,12 @@ Hint를 사용해서 실행계획을 바꿔야 한다.
 
 오히려 다음 질문이 더 중요했다.
 
-```text
-왜 이 테이블부터 읽었을까?
-
-왜 이 Index를 사용하지 않았을까?
-
-왜 이 Operation의 Starts가 이렇게 높을까?
-
-어디에서 Buffer Gets가 급격하게 증가했을까?
-
-Optimizer가 예상한 Rows와 실제 Rows는 왜 다를까?
-
-같은 값을 계산하는 Function이 왜 계속 호출되고 있을까?
-```
+- 왜 이 테이블부터 읽었을까?
+- 왜 이 Index를 사용하지 않았을까?
+- 왜 이 Operation의 `Starts`가 이렇게 높을까?
+- 어디에서 `Buffer Gets`가 급격하게 증가했을까?
+- Optimizer가 예상한 Rows와 실제 Rows는 왜 다를까?
+- 같은 값을 계산하는 Function이 왜 계속 호출되고 있을까?
 
 이 질문을 따라가다 보면 실행계획은 단순히 DB가 선택한 실행 순서를 보여주는 결과물이 아니라,
 
@@ -1133,23 +1063,4 @@ Optimizer가 예상한 Rows와 실제 Rows는 왜 다를까?
 
 > **같은 결과를 만들기 위해 DB가 수행하는 불필요한 작업을 줄이는 것.**
 
-실행계획은 그 작업을 어디에서 줄일 수 있는지 찾기 위한 가장 중요한 단서 중 하나다.
-
----
-
-## 참고
-
-- Oracle Database Reference - `V$SQLSTATS`  
-  https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/V-SQLSTATS.html
-
-- Oracle Database PL/SQL Packages and Types Reference - `DBMS_XPLAN`  
-  https://docs.oracle.com/en/database/oracle/oracle-database/21/arpls/DBMS_XPLAN.html
-
-- Oracle Database Concepts - B-Tree Indexes  
-  https://docs.oracle.com/en/database/oracle/oracle-database/18/cncpt/indexes-and-index-organized-tables.html
-
-- Oracle Database VLDB and Partitioning Guide - Partition Pruning  
-  https://docs.oracle.com/en/database/oracle/oracle-database/21/vldbg/partition-pruning.html
-
-- Ask TOM - Scalar Subquery Caching  
-  https://asktom.oracle.com/Misc/oramag/on-caching-and-evangelizing-sql.html
+실행계획은 그 작업을 어디에서 줄일 수 있는지 찾기 위한 가장 중요한 단서 중 하나이다.
