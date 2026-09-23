@@ -15,7 +15,7 @@ SQL 성능을 개선할 때 가장 먼저 떠올리는 것은 인덱스이다. �
 - 문자열 검색으로 구현된 조건 때문에 범위 검색이 불가능할 수도 있다.
 - Optimizer가 예상한 row 수와 실제 row 수가 크게 달라 잘못된 실행계획을 선택할 수도 있다.
 
-실행계획을 들여다보면 어떤 Operation이 선택됐는지 자체보다, 그 과정에서 어디에서 많은 데이터를 읽고 어떤 작업이 반복되고 있는지가 더 중요해진다.
+실행계획을 들여다보면 어떤 Operation이 선택됐는지 자체보다, 어디에서 많은 데이터를 읽고 어떤 작업이 반복되고 있는지를 보는 편이 더 중요하다.
 
 > **같은 결과를 반환하는데도 SQL마다 작업량이 달라지는 이유는 무엇일까?**
 
@@ -103,23 +103,23 @@ FROM TABLE(
 --------------------------------------------------------------------------------
 ```
 
-여기서 `TABLE ACCESS FULL`이라는 Operation 이름만 보고 성능을 판단해서는 안 된다.
+여기서 `TABLE ACCESS FULL`이라는 Operation 하나만 보고 성능을 판단해서는 안 된다.
 
 | 항목 | 의미 |
 | --- | --- |
 | `E-Rows` | Optimizer가 예상한 row 수 |
-| `A-Rows` | 실제로 Operation을 통과한 row 수 |
+| `A-Rows` | 해당 Operation을 실제로 통과한 row 수 |
 | `Starts` | 해당 Operation이 시작된 횟수. 값이 크다면 같은 Operation이 반복 실행되고 있는지 확인한다. |
 | `Buffers` | 해당 실행 과정에서 발생한 논리적 블록 접근량 |
 | `A-Time` | 실제 실행 과정에서 소비된 시간 |
 
-나는 대체로 아래 순서로 실행계획을 확인했다.
+실행계획은 대체로 아래 순서로 확인했다.
 
 ```mermaid
 flowchart LR
     A["SQL 실행 통계<br/>Buffer Gets / CPU / Elapsed"]
     B["실제 실행계획 확인"]
-    C["작업량이 큰 Operation 찾기"]
+    C["작업량이 큰 Operation 확인"]
     D["Predicate / Access Path"]
     E["Join Order / Join Method"]
     F["반복 연산 / Function Call"]
@@ -137,7 +137,7 @@ flowchart LR
     G --> H
 ```
 
-실행계획을 읽을 때는 **Rows가 어디에서 늘어나는지 → Buffers가 어디에서 증가하는지 → 어떤 Predicate가 적용되는지 → 왜 이 Access Path가 선택됐는지** 순서로 따라가면 흐름을 잡기 쉽다.
+실행계획을 볼 때는 **Rows가 어디에서 늘어나는지 → Buffers가 어디에서 증가하는지 → 어떤 Predicate가 적용되는지 → 왜 이 Access Path가 선택됐는지** 순서로 따라가면 흐름을 잡기 쉽다.
 
 ## 인덱스는 있는데 왜 사용하지 않을까
 
@@ -246,7 +246,7 @@ CREATE INDEX IDX_SAMPLE_KEY
 ON SAMPLE_TABLE (M1 || M2 || M3);
 ```
 
-어느 쪽이 맞는지는 실제 조회 패턴과 변경 비용을 보고 결정한다.
+어느 쪽이 더 나은지는 실제 조회 패턴과 변경 비용에 따라 달라진다.
 
 ### Access Predicate와 Filter Predicate
 
@@ -309,7 +309,7 @@ flowchart LR
     D --> E
 ```
 
-JOIN이 하나 늘면서 SQL 자체는 더 복잡해졌지만, 기존처럼 큰 데이터 집합에서 조건을 적용하는 대신 **선택도가 높은 조건으로 후보 집합을 먼저 줄인 뒤 큰 테이블에 접근**할 수 있게 되었다. JOIN 수를 줄이는 것보다 어떤 경로로 데이터를 먼저 좁히는지가 더 중요했고, 이 경우에는 JOIN을 추가한 쪽이 전체 작업량을 줄였다.
+JOIN이 하나 늘면서 SQL 자체는 더 복잡해졌지만, 기존처럼 큰 데이터 집합에서 조건을 적용하는 대신 **선택도가 높은 조건으로 후보 집합을 먼저 줄인 뒤 큰 테이블에 접근**할 수 있게 되었다. JOIN 수 자체보다 데이터를 어느 시점에 얼마나 줄일 수 있는지가 더 중요했고, 이 경우에는 JOIN을 추가한 쪽이 전체 작업량을 줄였다.
 
 ### Alias는 단순한 스타일 문제가 아니다
 
@@ -395,7 +395,7 @@ flowchart LR
 
 ### Case 3. Hint로 Join Order와 Access Path 조정하기
 
-실행계획을 보다 보니 Optimizer가 기대한 순서와 다르게 테이블을 읽는 경우도 있었다. 이런 경우에는 Hint를 이용해 조인 순서와 Access Path를 조정했다. 예를 들면 다음과 같은 형태다.
+실행계획을 확인하다 보면 Optimizer가 기대와 다른 순서로 테이블을 읽는 경우도 있다. 이 경우에는 Hint를 이용해 Join Order와 Access Path를 조정했다. 예를 들면 다음과 같은 형태다.
 
 ```sql
 SELECT /*+
@@ -423,7 +423,7 @@ INDEX
 → 특정 Index 사용 유도
 ```
 
-다만 Hint부터 추가하기보다는 먼저 실행계획이 그렇게 만들어진 이유를 확인하는 편이 낫다.
+다만 바로 Hint를 넣기보다, 먼저 왜 그런 실행계획이 선택됐는지 확인하는 편이 낫다.
 
 ```text
 통계 정보가 적절한가?
@@ -439,11 +439,11 @@ Join 조건이 정상적인가?
 Hint 검토
 ```
 
-Hint는 Optimizer의 선택에 직접 개입하므로 데이터 분포나 테이블 크기가 바뀐 뒤에도 해당 실행계획이 계속 적절한지 함께 봐야 한다.
+Hint는 Optimizer의 선택에 직접 개입한다. 데이터 분포나 테이블 크기가 바뀐 뒤에도 같은 실행계획이 적절한지는 따로 확인해야 한다.
 
 ## I/O가 아니라 반복 연산이 문제인 경우
 
-SQL 튜닝에서는 Table Scan이나 Index Scan을 먼저 보게 되지만, 실제 병목이 **SQL 안에서 반복 실행되는 Function**인 경우도 있다.
+SQL 튜닝에서는 Table Scan이나 Index Scan을 먼저 보게 되지만, **SQL 안에서 반복되는 Function Call**이 병목인 경우도 있다.
 
 ### Case 4. Function Call과 Scalar Subquery Caching
 
@@ -479,7 +479,7 @@ flowchart LR
     R4["CODE = A"] --> F4["GET_NAME(A)"]
 ```
 
-이 구조에서는 동일한 입력값에 대해 같은 Function이 반복 호출된다. SQL에서 PL/SQL Function을 호출한다면 SQL Engine과 PL/SQL Engine 사이의 호출 비용도 계속 발생한다. 입력값의 중복도가 높은 경우에는 Scalar Subquery 형태로 바꿔 반복 호출을 줄일 수 있다.
+이 구조에서는 동일한 입력값에 대해 같은 Function이 반복 호출된다. SQL에서 PL/SQL Function을 호출한다면 SQL Engine과 PL/SQL Engine 사이의 호출 비용도 계속 발생한다. 입력값이 반복되는 경우에는 Scalar Subquery 형태로 바꿔 Function Call 횟수를 줄일 수 있다.
 
 ```sql
 SELECT
@@ -509,7 +509,7 @@ flowchart LR
     F --> S
 ```
 
-동일한 입력값이 반복될수록 Function Call 횟수를 줄이는 효과를 기대할 수 있다. Oracle Ask TOM의 예제에서도 row마다 PL/SQL Function을 직접 호출했을 때보다 Scalar Subquery 형태로 감쌌을 때 호출 횟수가 크게 줄어든다.
+같은 입력값이 자주 반복될수록 Function Call을 줄이는 효과가 커질 수 있다. Oracle Ask TOM의 예제에서도 row마다 PL/SQL Function을 직접 호출했을 때보다 Scalar Subquery 형태로 감쌌을 때 호출 횟수가 크게 줄어든다.
 
 #### FAST DUAL이 보인다고 캐싱이 증명되는 것은 아니다
 
@@ -529,7 +529,7 @@ CPU_TIME
 ELAPSED_TIME
 ```
 
-여기서도 특정 Operation 이름보다 **실제로 반복 연산이 줄었는지**를 보는 편이 정확하다.
+여기서도 특정 Operation 자체보다 **실제로 반복 호출과 연산량이 줄었는지**를 보는 편이 정확하다.
 
 ## 검색 조건 자체를 다시 설계해야 하는 경우
 
@@ -541,7 +541,7 @@ ELAPSED_TIME
 WHERE INSTR(DATE_RANGE, :targetDate) > 0
 ```
 
-이 조건에서는 DB가 `DATE_RANGE` 값을 읽은 뒤 각 row마다 `INSTR`을 계산해야 한다. 실제 요구사항을 다시 보면 필요한 것은 문자열 포함 여부가 아니라 특정 일자가 시작일과 종료일 사이에 들어오는지 확인하는 것이었다.
+이 조건에서는 DB가 `DATE_RANGE` 값을 읽은 뒤 각 row마다 `INSTR`을 계산해야 한다. 실제로 필요한 조건은 문자열 포함 여부가 아니라 특정 일자가 시작일과 종료일 사이에 포함되는지 확인하는 것이었다.
 
 ```text
 특정 일자가
@@ -568,11 +568,11 @@ WHERE START_DT <= :targetDate
   AND END_DT >= :targetDate
 ```
 
-이후 실제 조회 패턴에 맞춰 날짜 기준 Index도 추가했다. 여기서 `INSTR`은 느리고 `BETWEEN`은 빠르다는 식으로 볼 필요는 없다. **데이터가 실제로 기간을 의미한다면 기간으로 조회할 수 있는 구조를 만드는 편이 자연스럽다.** SQL을 튜닝하다 보면 쿼리만의 문제가 아니라 데이터를 표현하는 방식까지 같이 보게 되는 이유다.
+여기에 실제 조회 패턴에 맞는 날짜 기준 Index도 추가했다. 여기서 `INSTR`은 느리고 `BETWEEN`은 빠르다는 식으로 볼 필요는 없다. **데이터가 실제로 기간을 의미한다면 기간으로 조회할 수 있는 구조를 만드는 편이 자연스럽다.** 이처럼 SQL 튜닝은 쿼리만 고치는 작업이 아니라 데이터가 어떤 형태로 저장되고 조회되는지도 함께 보게 된다.
 
 ## 추가로 자주 확인할 만한 병목
 
-앞에서는 실제로 다뤘던 문제를 중심으로 정리했다. 실행계획을 볼 때는 이외에도 다음 항목을 함께 확인할 만하다.
+앞에서는 실제로 다뤘던 문제를 중심으로 정리했다. 이외에도 실행계획을 볼 때 자주 확인하는 항목들이 있다.
 
 ### E-Rows와 A-Rows가 크게 다른 경우
 
@@ -616,7 +616,7 @@ Histogram이 필요한가?
 Predicate 간 상관관계가 있는가?
 ```
 
-이 문제는 SQL 문법만 바꾼다고 해결되지 않을 수 있다. **Optimizer가 왜 row 수를 다르게 예상했는지**부터 확인해야 한다.
+이 경우에는 SQL 문법을 바꾸기보다 **Optimizer가 왜 row 수를 잘못 추정했는지**부터 확인해야 한다.
 
 ### 암묵적 형 변환
 
@@ -632,24 +632,24 @@ USER_ID VARCHAR2
 WHERE USER_ID = 12345
 ```
 
-상황에 따라 Oracle이 데이터 타입을 맞추기 위해 컬럼 쪽에 암묵적인 변환을 적용할 수 있는데, 개념적으로는 다음과 같은 형태가 된다.
+타입이 다르면 Oracle이 비교를 위해 암묵적 형 변환을 수행할 수 있다. 컬럼 쪽에 변환이 걸리면 다음과 같은 형태가 될 수 있다.
 
 ```sql
 WHERE TO_NUMBER(USER_ID) = 12345
 ```
 
-이렇게 되면 `USER_ID` 컬럼을 기준으로 만든 B-Tree Index를 기대한 방식으로 사용하지 못할 수 있다. 그래서 애플리케이션에서 넘기는 Bind Variable의 타입도 같이 확인해야 한다.
+이 경우 `USER_ID`에 걸린 B-Tree Index를 기대한 방식으로 사용하지 못할 수 있다. 그래서 애플리케이션에서 넘기는 Bind Variable의 타입도 같이 확인해야 한다.
 
 ```sql
 -- 컬럼이 VARCHAR2라면
 WHERE USER_ID = :userId
 ```
 
-`:userId` 역시 컬럼 타입에 맞춰 문자열로 전달하는 편이 자연스럽다. 이 경우도 **Predicate에서 Index Column에 어떤 연산이 적용되는지**가 핵심이다.
+`:userId` 역시 컬럼 타입에 맞춰 문자열로 전달하는 편이 자연스럽다. 여기서도 핵심은 **Predicate에서 Index Column이 가공되고 있는지**다.
 
 ### SORT / HASH 작업과 TEMP Spill
 
-실행계획에서 다음 Operation도 자주 볼 수 있다.
+실행계획에서는 다음과 같은 Operation도 자주 볼 수 있다.
 
 ```text
 SORT ORDER BY
@@ -658,7 +658,7 @@ HASH GROUP BY
 HASH JOIN
 ```
 
-이런 Operation은 메모리가 충분하면 PGA에서 처리되지만, 데이터가 크거나 사용할 수 있는 메모리가 부족하면 작업 일부가 TEMP 영역으로 내려갈 수 있다.
+이런 Operation은 메모리가 충분하면 PGA에서 처리되지만, 데이터가 크거나 사용할 수 있는 메모리가 부족하면 일부 작업이 TEMP 영역으로 내려갈 수 있다.
 
 ```mermaid
 flowchart LR
@@ -676,7 +676,7 @@ flowchart LR
     D -->|No| F --> G --> H
 ```
 
-`DBMS_XPLAN`의 `MEMSTATS`를 이용하면 Hash Join이나 Sort와 같은 메모리 집약 Operation에서 메모리 사용 및 disk spill 관련 정보를 확인할 수 있다. `BUFFER_GETS`가 생각보다 크지 않은데 `ELAPSED_TIME`이 높다면 이런 메모리 작업이나 TEMP 사용도 같이 볼 필요가 있다.
+`DBMS_XPLAN`의 `MEMSTATS`를 이용하면 Hash Join이나 Sort처럼 메모리 사용량이 큰 Operation의 메모리 사용량과 TEMP Spill 여부를 확인할 수 있다. `BUFFER_GETS`가 생각보다 크지 않은데 `ELAPSED_TIME`이 높다면 이런 메모리 작업이나 TEMP 사용도 같이 볼 필요가 있다.
 
 ### Partition Pruning
 
@@ -719,11 +719,11 @@ flowchart LR
     X --> Y --> Z --> W
 ```
 
-Partition Key에 함수나 암묵적 형 변환이 적용되면 Partition Pruning이 제한될 수 있다. 원리는 앞에서 본 인덱스 문제와 비슷하다. DB가 가지고 있는 물리적인 탐색 기준을 Predicate가 그대로 사용할 수 있는지를 보면 된다.
+Partition Key에 함수나 암묵적 형 변환이 적용되면 Partition Pruning이 제한될 수 있다. 원리는 앞에서 본 인덱스 문제와 비슷하다. Predicate가 Partition Key를 그대로 사용할 수 있어야 Pruning도 제대로 동작하기 쉽다.
 
-## 실행계획에서 Operation 이름만 보면 안 되는 이유
+## 실행계획은 특정 Operation만 보고 판단할 수 없다
 
-처음 실행계획을 보면 다음 Operation 이름이 눈에 들어온다.
+처음 실행계획을 보면 다음과 같은 Operation이 먼저 눈에 들어온다.
 
 ```text
 TABLE ACCESS FULL
@@ -734,7 +734,7 @@ SORT
 FAST DUAL
 ```
 
-하지만 특정 Operation이 존재한다고 해서 좋은 계획 또는 나쁜 계획이라고 단정할 수 없다.
+하지만 특정 Operation이 포함되어 있다는 이유만으로 좋은 계획이나 나쁜 계획이라고 단정할 수 없다.
 
 ### Full Scan이 더 나은 경우
 
@@ -750,7 +750,7 @@ Outer 결과가 작고 Inner Index가 효율적일 때는 유리하지만, Cardi
 
 ### 많은 데이터를 조인할 때의 Hash Join
 
-많은 데이터를 조인해야 한다면 반복적인 Index Lookup보다 Hash Join이 더 효율적인 경우가 있다. 실행계획은 대체로 아래 흐름으로 보면 정리하기 쉽다.
+많은 데이터를 조인해야 한다면 반복적인 Index Lookup보다 Hash Join이 더 효율적인 경우가 있다. 정리하면 실행계획은 아래 흐름으로 보는 편이 이해하기 쉽다.
 
 ```text
 Predicate
@@ -790,7 +790,7 @@ Elapsed Time : 100 → 52
 
 ## 지금까지의 튜닝을 정리하면
 
-앞에서 다룬 변경을 튜닝 관점에서 정리하면 다음과 같다.
+앞에서 다룬 내용을 튜닝 관점으로 묶으면 다음과 같다.
 
 | 변경 내용 | 근본적인 문제 |
 | --- | --- |
@@ -811,7 +811,7 @@ DB가 불필요하게 반복하는 작업 줄이기
 Optimizer가 더 좋은 Access Path를 선택할 수 있는 조건 만들기
 ```
 
-모두 **DB가 같은 결과를 만들기 위해 해야 하는 일의 양을 줄이는 작업**으로 볼 수 있다.
+결국 공통점은 **같은 결과를 만들기 위해 DB가 해야 하는 일을 줄였다는 것**이다.
 
 ## 마치며
 
@@ -824,4 +824,4 @@ SQL 튜닝을 처음 보면 Full Scan을 없애거나 Index를 타게 만드는 
 - Optimizer가 예상한 Rows와 실제 Rows는 왜 다를까?
 - 같은 값을 계산하는 Function이 왜 계속 호출되고 있을까?
 
-이 질문을 따라가다 보면 실행계획은 DB가 선택한 순서를 확인하는 표라기보다 **SQL이 데이터를 어떤 방식으로 처리하고 있는지 보여주는 디버깅 정보**에 가까워진다. SQL 튜닝의 목표도 Index를 사용하거나 Full Scan을 없애는 데만 있지 않다. **같은 결과를 만들기 위해 DB가 수행하는 불필요한 작업을 줄이는 것**, 그리고 실행계획은 그 작업을 어디에서 줄일 수 있는지 찾기 위한 단서이다.
+이런 식으로 보다 보면 실행계획은 단순히 실행 순서를 확인하는 표가 아니라 **SQL이 데이터를 어떻게 처리하고 있는지 추적하는 디버깅 정보**에 가깝다. SQL 튜닝의 목표도 단순히 Index를 사용하게 만들거나 Full Scan을 없애는 데 있지는 않다. **같은 결과를 만들기 위해 DB가 수행하는 불필요한 작업을 줄이는 것**, 그리고 실행계획은 그 작업을 어디에서 줄일 수 있는지 찾기 위한 단서이다.
