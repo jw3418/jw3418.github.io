@@ -703,7 +703,7 @@ flowchart LR
 
 Partition Key에 함수나 암묵적 형 변환이 적용되면 Partition Pruning이 제한될 수 있다. 앞에서 본 인덱스와 마찬가지로 Predicate가 Partition Key를 그대로 사용할 수 있는지가 중요하다.
 
-## Operation 이름만으로 판단하지 않는다
+## Operation만으로 판단하지 않는다
 
 실행계획에 어떤 Operation이 포함됐는지만으로 좋은 계획과 나쁜 계획을 나눌 수는 없다.
 
@@ -714,7 +714,7 @@ Partition Key에 함수나 암묵적 형 변환이 적용되면 Partition Prunin
 | `NESTED LOOPS` | Outer row 수가 예상보다 커지면 Inner 접근 횟수도 함께 증가한다. |
 | `HASH JOIN` | 많은 데이터를 조인할 때 반복적인 Index Lookup보다 유리할 수 있다. |
 
-결국 Operation 이름보다 Predicate, Cardinality, Access Path, Join Order, `Starts`, Buffers가 어떻게 이어지는지를 함께 봐야 한다.
+결국 Operation 보다 Predicate, Cardinality, Access Path, Join Order, `Starts`, Buffers가 어떻게 이어지는지를 함께 봐야 한다.
 
 ## 튜닝 전후에는 무엇을 비교할 것인가
 
