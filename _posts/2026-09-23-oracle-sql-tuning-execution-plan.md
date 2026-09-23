@@ -113,7 +113,7 @@ FROM TABLE(
 | `Buffers` | 해당 실행 과정에서 발생한 논리적 블록 접근량 |
 | `A-Time` | 실제 실행 과정에서 소비된 시간 |
 
-나는 대체로 아래 순서로 실행계획을 봤다.
+나는 대체로 아래 순서로 실행계획을 확인했다.
 
 ```mermaid
 flowchart LR
@@ -260,20 +260,7 @@ Predicate Information
 3 - filter("STATUS"='Y')
 ```
 
-`Access Predicate`는 데이터에 접근할 범위를 정하고, `Filter Predicate`는 접근한 데이터에서 조건에 맞지 않는 row를 걸러낸다. 예를 들어 Index Range Scan에서 `access` 조건을 이용해 100건만 읽는 것과, 10만 건을 먼저 읽은 뒤 `filter`로 100건만 남기는 것은 결과가 같아도 작업량이 다르다. 그래서 실행계획에서는 단순히
-
-```text
-INDEX RANGE SCAN이 있다.
-```
-
-보다
-
-```text
-어떤 조건이 Access Predicate인가?
-얼마나 많은 row를 먼저 읽고 있는가?
-```
-
-를 보는 것이 더 중요하다.
+`Access Predicate`는 데이터에 접근할 범위를 정하고, `Filter Predicate`는 접근한 데이터에서 조건에 맞지 않는 row를 걸러낸다. 예를 들어 Index Range Scan에서 `access` 조건을 이용해 100건만 읽는 것과, 10만 건을 먼저 읽은 뒤 `filter`로 100건만 남기는 것은 결과가 같아도 작업량이 다르다. 그래서 실행계획에서는 단순히 'INDEX RANGE SCAN이 동작한다.' 보다 '어떤 조건이 Access Predicate인가?', '얼마나 많은 row를 먼저 읽고 있는가?' 를 보는 것이 더 중요하다.
 
 ## 데이터를 언제 줄이는가
 
