@@ -224,7 +224,7 @@ flowchart LR
 
 이 변경의 핵심은 문자열 결합 연산을 없애는 것 자체가 아니라 **Predicate를 기존 Index가 탐색할 수 있는 형태로 변경한 것**이다.
 
-반대로 'M1 || M2 || M3' 형태 자체가 주요 조회 조건이라면 Function-Based Index를 만드는 방법도 있다.
+반대로 'M1 \|\| M2 \|\| M3' 형태 자체가 주요 조회 조건이라면 Function-Based Index를 만드는 방법도 있다.
 
 ```sql
 CREATE INDEX IDX_SAMPLE_KEY
