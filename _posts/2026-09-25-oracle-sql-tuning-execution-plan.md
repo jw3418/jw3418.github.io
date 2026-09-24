@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Oracle SQL 튜닝 - 실행계획에서 병목을 찾는 방법"
-date: 2026-09-23
+date: 2026-09-25
 categories: [Database]
 ---
 
