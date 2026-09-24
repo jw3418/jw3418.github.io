@@ -25,10 +25,10 @@ SQL이 느리다고 해서 ELAPSED_TIME 하나만 봐서는 원인을 알기 어
 
 | 지표 | 의미 | 확인하려는 내용 |
 | --- | --- | --- |
-| `BUFFER_GETS` | Buffer Cache에서 논리적으로 블록을 읽은 횟수 | 얼마나 많은 데이터를 탐색했는가 |
-| `CPU_TIME` | Parse, Execute, Fetch에 사용된 CPU 시간 | 연산이나 함수 호출 비용이 큰가 |
-| `ELAPSED_TIME` | SQL 처리에 걸린 전체 경과 시간 | 실제 처리 시간이 얼마나 걸렸는가 |
-| `EXECUTIONS` | Cursor가 실행된 횟수 | 누적 비용이 실행 횟수 때문인가 |
+| BUFFER_GETS | Buffer Cache에서 논리적으로 블록을 읽은 횟수 | 얼마나 많은 데이터를 탐색했는가 |
+| CPU_TIME | Parse, Execute, Fetch에 사용된 CPU 시간 | 연산이나 함수 호출 비용이 큰가 |
+| ELAPSED_TIME | SQL 처리에 걸린 전체 경과 시간 | 실제 처리 시간이 얼마나 걸렸는가 |
+| EXECUTIONS | Cursor가 실행된 횟수 | 누적 비용이 실행 횟수 때문인가 |
 
 `V$SQLSTATS`의 BUFFER_GETS, CPU_TIME, ELAPSED_TIME은 누적 값이므로 실행 횟수가 다른 SQL을 비교할 때는 EXECUTIONS도 함께 확인해야 한다.
 
@@ -85,17 +85,17 @@ FROM TABLE(
 --------------------------------------------------------------------------------
 ```
 
-여기서 'TABLE ACCESS FULL'과 같은 특정 Operation 하나만 보고 성능을 판단해서는 안 된다. 실제로 얼마나 많은 row를 처리했고, 해당 Operation이 몇 번 반복됐으며, 어느 구간에서 Buffer 사용량이 커졌는지를 함께 봐야 한다.
+여기서 TABLE ACCESS FULL과 같은 특정 Operation 하나만 보고 성능을 판단해서는 안 된다. 실제로 얼마나 많은 row를 처리했고, 해당 Operation이 몇 번 반복됐으며, 어느 구간에서 Buffer 사용량이 커졌는지를 함께 봐야 한다.
 
 | 항목        | 의미                           |
 | --------- | ---------------------------- |
-| `E-Rows`  | Optimizer가 예상한 row 수         |
-| `A-Rows`  | 해당 Operation에서 실제로 처리한 row 수 |
-| `Starts`  | 해당 Operation이 시작된 횟수         |
-| `Buffers` | 실행 과정에서 발생한 논리적 블록 접근량       |
-| `A-Time`  | 해당 Operation의 실제 실행 시간       |
+| E-Rows  | Optimizer가 예상한 row 수         |
+| A-Rows  | 해당 Operation에서 실제로 처리한 row 수 |
+| Starts  | 해당 Operation이 시작된 횟수         |
+| Buffers | 실행 과정에서 발생한 논리적 블록 접근량       |
+| A-Time  | 해당 Operation의 실제 실행 시간       |
 
-예를 들어 Optimizer가 10건을 예상했는데 실제로는 10만 건이 처리됐다면, 그 차이가 뒤쪽 Join Order나 Join Method에 영향을 줄 수 있다. 'Starts'가 지나치게 크다면 특정 Operation이 반복 실행되고 있는지도 확인해야 한다.
+예를 들어 Optimizer가 10건을 예상했는데 실제로는 10만 건이 처리됐다면, 그 차이가 뒤쪽 Join Order나 Join Method에 영향을 줄 수 있다. Starts가 지나치게 크다면 특정 Operation이 반복 실행되고 있는지도 확인해야 한다.
 
 실행계획은 다음 흐름으로 확인했다.
 
@@ -119,7 +119,7 @@ flowchart LR
     F --> G
 ```
 
-먼저 'A-Rows', 'Buffers', 'Starts'를 기준으로 작업량이 커지는 지점을 찾는다. 이후 해당 구간의 Predicate와 Access Path를 확인하고, 필요한 경우 Join Order나 반복 Function Call까지 따라가면서 원인을 좁혀간다.
+먼저 A-Rows, Buffers, Starts를 기준으로 작업량이 커지는 지점을 찾는다. 이후 해당 구간의 Predicate와 Access Path를 확인하고, 필요한 경우 Join Order나 반복 Function Call까지 따라가면서 원인을 좁혀간다.
 
 ## Index가 있어도 사용하지 못하는 경우
 
@@ -183,7 +183,7 @@ B-Tree Index에는 '(M1, M2, M3)' 조합이 하나의 복합 Key로 정렬되어
 WHERE M1 || M2 || M3 = :key
 ```
 
-SQL의 결과값은 같을 수 있지만, WHERE 절에서는 Index에 저장된 '(M1, M2, M3)'를 그대로 비교하지 않고 아래와 같이 새로운 표현식을 만든다.
+SQL의 결과값은 같을 수 있지만, WHERE 절에서는 Index에 저장된 (M1, M2, M3)를 그대로 비교하지 않고 아래와 같이 새로운 표현식을 만든다.
 
 ```mermaid
 flowchart LR
@@ -258,9 +258,9 @@ Predicate Information
 3 - filter("STATUS"='Y')
 ```
 
-'Access Predicate'는 **어디를 읽을지 결정하는 조건**이다. 위 예시에서는 '(M1, M2, M3)' 조건을 이용해 Index에서 탐색할 범위를 줄인다.
+Access Predicate는 **어디를 읽을지 결정하는 조건**이다. 위 예시에서는 '(M1, M2, M3)' 조건을 이용해 Index에서 탐색할 범위를 줄인다.
 
-반면 'Filter Predicate'는 **이미 읽은 데이터 중 무엇을 제외할지 결정하는 조건**이다. Index를 통해 후보 row를 찾은 뒤 'STATUS = 'Y'' 조건으로 최종 결과를 걸러낼 수 있다.
+반면 Filter Predicate는 **이미 읽은 데이터 중 무엇을 제외할지 결정하는 조건**이다. Index를 통해 후보 row를 찾은 뒤 'STATUS = 'Y'' 조건으로 최종 결과를 걸러낼 수 있다.
 
 여기서 'Access'와 'Filter'는 단순히 Index 존재 여부로 구분되는 것이 아니다. 같은 조건이라도 선택된 Index와 Access Path에 따라 Access Predicate로 사용될 수도 있고 Filter Predicate로 처리될 수도 있다.
 
@@ -483,7 +483,7 @@ flowchart LR
 WHERE INSTR(DATE_RANGE, :targetDate) > 0
 ```
 
-이 조건에서는 DB가 'DATE_RANGE' 값을 읽은 뒤 각 row마다 'INSTR'을 계산해야 한다. 실제로 필요한 조건은 문자열 포함 여부가 아니라 특정 일자가 시작일과 종료일 사이에 포함되는지 확인하는 것이었다. (특정 일자 targetDate가 START_DT ~ END_DT 범위 안에 존재하는가?)
+이 조건에서는 DB가 DATE_RANGE 값을 읽은 뒤 각 row마다 INSTR을 계산해야 한다. 실제로 필요한 조건은 문자열 포함 여부가 아니라 특정 일자가 시작일과 종료일 사이에 포함되는지 확인하는 것이었다. (특정 일자 targetDate가 START_DT ~ END_DT 범위 안에 존재하는가?)
 
 따라서 데이터의 의미에 맞게 아래와 같이 변경할 수 있었다.
 
@@ -526,7 +526,7 @@ SQL을 수정한 뒤에는 변경 전후를 동일한 조건에서 다시 비교
 | 일자 조건을 활용하기 위한 JOIN 추가           | Access Path / Early Filtering   |
 | Hint로 Join 순서 및 방식 조정            | Join Order / Join Method        |
 | Scalar Subquery Caching 활용       | 반복 Function Call / CPU          |
-| 'INSTR'을 Range Predicate로 변경     | Predicate / Data Access Pattern |
+| INSTR을 Range Predicate로 변경     | Predicate / Data Access Pattern |
 | 일자 기준 Index 추가                   | Access Path 개선                  |
 
 각 사례에서 수정한 부분은 달랐지만 방향은 같았다. **불필요하게 읽는 데이터와 반복 작업을 줄이고, 실제 조회 패턴에 맞는 Access Path를 만들기 위한 것**이었다.
