@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Kubernetes 서비스 배포 흐름 이해하기"
-date: 2026-08-16
+date: 2026-07-21
 categories: [CI/CD]
 ---
 
