@@ -239,7 +239,7 @@ Oracle JDBC 연결 속성의 설정 예시는 다음과 같다.
 oracle.jdbc.defaultLobPrefetchSize=32768
 ```
 
-`defaultLobPrefetchSize`는 CLOB의 경우 문자 수, BLOB의 경우 Byte 수를 기준으로 한다. 예시의 `32768`은 모든 CLOB을 32KiB만큼 가져온다는 의미가 아니라, CLOB에서 최대 32,768문자를 Prefetch하도록 설정한다는 의미다. 기본값은 사용하는 ojdbc 버전과 설정에 따라 확인해야 하며, MyBatis Type Handler가 LOB를 읽는 방식도 실제 효과에 영향을 준다.
+`defaultLobPrefetchSize`는 CLOB의 경우 문자 수, BLOB의 경우 Byte 수를 기준으로 한다. 예시의 `32768`은 모든 CLOB을 32KiB만큼 가져온다는 의미가 아니라, CLOB에서 최대 32,768문자를 Prefetch하도록 설정한다는 의미다. (기본값은 사용하는 ojdbc 버전과 설정에 따라 확인해야 하며, MyBatis Type Handler가 LOB를 읽는 방식도 실제 효과에 영향을 준다.)
 
 CLOB 본문이 Prefetch 범위 안에 들어오면 추가 LOB Read를 줄일 수 있다. 다만 다수의 Row에서 큰 CLOB을 함께 조회할 때 Prefetch 크기를 무조건 높이면 네트워크 전송량과 JDBC가 사용하는 메모리가 오히려 늘 수 있다.
 
