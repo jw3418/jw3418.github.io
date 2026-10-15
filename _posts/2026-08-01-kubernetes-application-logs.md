@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Kubernetes Log 이해하기"
-date: 2026-08-16
+date: 2026-08-01
 categories: [Observability]
 ---
 
