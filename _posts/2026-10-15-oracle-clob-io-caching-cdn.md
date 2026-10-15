@@ -81,7 +81,7 @@ flowchart TD
 
 대략적으로 `Throughput ≈ IOPS × 평균 I/O 크기` 관계가 성립한다.
 
-가상의 AWS EBS 기반 DB 환경에서 스토리지에 12,000 IOPS를 설정했지만, 인스턴스의 EBS I/O 처리 한도가 9,000 IOPS라고 가정하자. 실제 요청이 초당 8,600건의 I/O까지 늘었다면 스토리지의 프로비저닝 수치에는 여유가 있어 보여도 인스턴스 쪽 한계에 먼저 가까워질 수 있다. (이 숫자는 구조를 설명하기 위한 예시이며 실제 운영 지표와 관계없다.)
+가상의 AWS EBS 기반 DB 환경에서 스토리지에 12,000 IOPS를 설정했지만, 인스턴스의 EBS I/O 처리 한도가 9,000 IOPS라고 가정하자. 실제 요청이 초당 8,600건의 I/O까지 늘었다면 스토리지의 프로비저닝 수치에는 여유가 있어 보여도 인스턴스 쪽 한계에 먼저 가까워질 수 있다.
 
 ```mermaid
 flowchart TD
@@ -98,6 +98,23 @@ flowchart TD
 ---
 
 ## Database Layer: CACHE READS로 반복적인 LOB 물리 읽기 줄이기
+
+```mermaid
+flowchart LR
+    Client["Client"] --> API["Application API"]
+    API --> SQL["SQL / Mapper"]
+    SQL --> JDBC["JDBC Driver"]
+    JDBC --> DB["Oracle Database / LOB Cache"]
+    DB --> IO["DB Instance / EBS Storage"]
+    API -.-> AppCache["Redis / Local Cache"]
+    Client -.-> CDN["CDN / Object Storage"]
+
+    classDef focus fill:#ffe6a7,stroke:#d97706,stroke-width:3px,color:#3b2600;
+    classDef normal fill:#eef2f7,stroke:#94a3b8,color:#263244;
+    class Client,API,SQL,JDBC,DB,IO,AppCache,CDN normal;
+    class DB focus;
+```
+
 
 애플리케이션의 조회 로직을 그대로 유지하면서 검토할 수 있는 방법은 LOB 컬럼의 캐싱 정책을 `CACHE READS`로 변경하는 것이다.
 
@@ -121,7 +138,7 @@ MODIFY LOB (CONTENT_BODY) (CACHE READS);
 다만 `CACHE READS`로 해결되지 않는 비용과 새로 발생할 수 있는 문제가 있다.
 
 - **SQL과 DB 호출은 그대로 남는다.** Physical I/O를 줄이더라도 Oracle이 요청을 처리하고 JDBC를 통해 결과를 반환해야 한다.
-- **Buffer Cache는 공유 자원이다.** LOB 블록이 많아지면 기존의 Table/Index 블록이 밀려나 다른 SQL의 Cache Hit가 감소할 수 있다. 이를 Cache Pollution이라고 한다.
+- **Buffer Cache는 공유 자원이다.** LOB 블록이 많아지면 기존의 Table/Index 블록이 밀려나 다른 SQL의 Cache Hit가 감소할 수 있다. (이를 Cache Pollution이라고 한다.)
 
 또한 DB 인스턴스의 총 메모리가 그대로 Buffer Cache 크기를 의미하지는 않는다. Oracle은 SGA의 여러 영역과 PGA 등에 메모리를 사용하므로 실제 Buffer Cache 할당량과 조정 방식을 확인해야 한다.
 
@@ -132,6 +149,23 @@ MODIFY LOB (CONTENT_BODY) (CACHE READS);
 ---
 
 ## SQL Layer: 목록 조회와 상세 조회를 분리해 불필요한 CLOB 읽기 제거하기
+
+```mermaid
+flowchart LR
+    Client["Client"] --> API["Application API"]
+    API --> SQL["SQL / Mapper"]
+    SQL --> JDBC["JDBC Driver"]
+    JDBC --> DB["Oracle Database / LOB Cache"]
+    DB --> IO["DB Instance / EBS Storage"]
+    API -.-> AppCache["Redis / Local Cache"]
+    Client -.-> CDN["CDN / Object Storage"]
+
+    classDef focus fill:#ffe6a7,stroke:#d97706,stroke-width:3px,color:#3b2600;
+    classDef normal fill:#eef2f7,stroke:#94a3b8,color:#263244;
+    class Client,API,SQL,JDBC,DB,IO,AppCache,CDN normal;
+    class SQL focus;
+```
+
 
 다음으로는 SQL에서 실제 사용하지 않는 LOB를 가져오고 있지 않은지 확인할 필요가 있다.
 
@@ -168,6 +202,23 @@ WHERE CONTENT_ID = :contentId;
 
 ## JDBC Layer: LOB Prefetch로 추가 데이터 Fetch 요청 줄이기
 
+```mermaid
+flowchart LR
+    Client["Client"] --> API["Application API"]
+    API --> SQL["SQL / Mapper"]
+    SQL --> JDBC["JDBC Driver"]
+    JDBC --> DB["Oracle Database / LOB Cache"]
+    DB --> IO["DB Instance / EBS Storage"]
+    API -.-> AppCache["Redis / Local Cache"]
+    Client -.-> CDN["CDN / Object Storage"]
+
+    classDef focus fill:#ffe6a7,stroke:#d97706,stroke-width:3px,color:#3b2600;
+    classDef normal fill:#eef2f7,stroke:#94a3b8,color:#263244;
+    class Client,API,SQL,JDBC,DB,IO,AppCache,CDN normal;
+    class JDBC focus;
+```
+
+
 Oracle JDBC는 CLOB의 내용을 가져올 때 LOB Locator를 사용한다. LOB Prefetch는 SQL의 Row Fetch 과정에서 LOB Locator뿐 아니라 설정한 크기만큼의 본문도 미리 전달하는 기능이다. 본문이 Prefetch 범위를 초과하거나 추가 읽기가 필요한 경우에는 후속 LOB Read가 발생할 수 있다.
 
 ```mermaid
@@ -198,6 +249,23 @@ CLOB 본문이 Prefetch 범위 안에 들어오면 추가 LOB Read를 줄일 수
 
 ## Application Layer: Redis 또는 Local Cache로 반복적인 DB 조회 제거하기
 
+```mermaid
+flowchart LR
+    Client["Client"] --> API["Application API"]
+    API --> SQL["SQL / Mapper"]
+    SQL --> JDBC["JDBC Driver"]
+    JDBC --> DB["Oracle Database / LOB Cache"]
+    DB --> IO["DB Instance / EBS Storage"]
+    API -.-> AppCache["Redis / Local Cache"]
+    Client -.-> CDN["CDN / Object Storage"]
+
+    classDef focus fill:#ffe6a7,stroke:#d97706,stroke-width:3px,color:#3b2600;
+    classDef normal fill:#eef2f7,stroke:#94a3b8,color:#263244;
+    class Client,API,SQL,JDBC,DB,IO,AppCache,CDN normal;
+    class AppCache focus;
+```
+
+
 같은 콘텐츠를 여러 사용자가 반복해서 요청하고, 내용의 변경 빈도가 낮다면 애플리케이션이 조회 결과를 캐싱하는 방법도 고려할 수 있다.
 
 ```mermaid
@@ -222,6 +290,23 @@ Application Cache가 효과적으로 작동하면 Oracle의 SQL 실행과 LOB �
 ---
 
 ## Infrastructure Layer: 스토리지와 DB 인스턴스의 I/O 처리 한도 늘리기
+
+```mermaid
+flowchart LR
+    Client["Client"] --> API["Application API"]
+    API --> SQL["SQL / Mapper"]
+    SQL --> JDBC["JDBC Driver"]
+    JDBC --> DB["Oracle Database / LOB Cache"]
+    DB --> IO["DB Instance / EBS Storage"]
+    API -.-> AppCache["Redis / Local Cache"]
+    Client -.-> CDN["CDN / Object Storage"]
+
+    classDef focus fill:#ffe6a7,stroke:#d97706,stroke-width:3px,color:#3b2600;
+    classDef normal fill:#eef2f7,stroke:#94a3b8,color:#263244;
+    class Client,API,SQL,JDBC,DB,IO,AppCache,CDN normal;
+    class IO focus;
+```
+
 
 실제 지표에서 스토리지 또는 DB 인스턴스의 I/O 처리 한도에 도달한 것이 확인된다면, 성능 설정이나 인스턴스 클래스를 변경해 처리 용량을 늘리는 방안도 검토해야 한다.
 
@@ -262,6 +347,23 @@ Application Cache가 효과적으로 작동하면 Oracle의 SQL 실행과 LOB �
 ---
 
 ## Architecture Layer: 정적 콘텐츠를 Oracle 대신 Object Storage와 CDN에서 제공하기
+
+```mermaid
+flowchart LR
+    Client["Client"] --> API["Application API"]
+    API --> SQL["SQL / Mapper"]
+    SQL --> JDBC["JDBC Driver"]
+    JDBC --> DB["Oracle Database / LOB Cache"]
+    DB --> IO["DB Instance / EBS Storage"]
+    API -.-> AppCache["Redis / Local Cache"]
+    Client -.-> CDN["CDN / Object Storage"]
+
+    classDef focus fill:#ffe6a7,stroke:#d97706,stroke-width:3px,color:#3b2600;
+    classDef normal fill:#eef2f7,stroke:#94a3b8,color:#263244;
+    class Client,API,SQL,JDBC,DB,IO,AppCache,CDN normal;
+    class CDN focus;
+```
+
 
 CLOB에 저장된 데이터가 모든 사용자에게 동일하고 변경 빈도가 낮은 HTML이나 설명 문서라면, Oracle은 이 데이터를 저장하고 전달하기 위한 최적의 위치인지 생각해볼 필요가 있다.
 
@@ -373,12 +475,3 @@ JDBC에서 추가 LOB Read가 발생한다 → LOB Prefetch 설정 검토
 > **가장 효과적인 I/O 최적화는 더 빠르게 읽는 것이 아니라, 읽지 않아도 되는 경로를 없애는 것이다.**
 
 대용량 정적 본문을 다수의 사용자에게 동일하게 제공하는 환경이라면, Object Storage와 CDN으로의 전환은 Oracle의 읽기 성능을 보완하는 작업을 넘어 **콘텐츠 저장과 전송을 관계형 DB의 책임에서 분리하는 아키텍처 변경**이 된다.
-
----
-
-### 참고 자료
-
-- [Oracle Database 19c — SecureFiles and Large Objects Developer's Guide](https://docs.oracle.com/en/database/oracle/oracle-database/19/adlob/)
-- [Oracle Database 19c — JDBC Developer's Guide](https://docs.oracle.com/en/database/oracle/oracle-database/19/jjdbc/)
-- [AWS — Amazon RDS DB Instance Classes](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html)
-- [AWS — Amazon EBS Performance](https://docs.aws.amazon.com/ebs/latest/userguide/ebs-performance.html)
