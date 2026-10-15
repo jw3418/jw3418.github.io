@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "UPDATE 동시성과 Lock"
-date: 2026-08-12
+date: 2026-06-12
 categories: [Database]
 ---
 
