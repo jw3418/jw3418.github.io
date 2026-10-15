@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "MyBatis Mapper 패턴 이해하기"
-date: 2026-08-12
+date: 2026-01-05
 categories: [Spring & Java]
 ---
 
