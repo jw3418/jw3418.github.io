@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Spring Cloud OpenFeign 동작 이해하기"
-date: 2026-08-13
+date: 2026-04-19
 categories: [Spring & Java]
 ---
 
