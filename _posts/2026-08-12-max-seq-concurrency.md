@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "MAX(seq) + 1과 동시성 문제"
-date: 2026-08-12
+date: 2026-06-10
 categories: [Database]
 ---
 
